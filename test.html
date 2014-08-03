@@ -1,0 +1,99 @@
+<html>
+	<head>
+		<title>Map Editor</title>
+	</head>
+	<style>
+		html,body{
+			margin:0px;
+			padding:0px;
+		}
+		canvas{
+			border:1px solid red;
+		}
+	</style>
+	<script>
+		var imageOffsetX = 0;
+		var imageOffsetY = 0;
+		
+		var unit = 32;
+		var imageViewWidth = unit*8;
+		var imageViewHeight = unit*8;
+		
+		function start(){
+			canvas = document.getElementById("mycanvas");
+			canvasX = canvas.offsetLeft;
+			canvasY = canvas.offsetTop;
+			context = canvas.getContext("2d");
+			
+			canvas2 = document.getElementById("mycanvas2");
+			context2 = canvas2.getContext("2d");
+		
+			var img = new Image();
+			img.src = "map.png";
+			img.onload=function(){
+				if(img.complete==true){
+					context.drawImage(img,0,0,imageViewWidth,imageViewHeight,0,0,imageViewWidth,imageViewHeight);
+					currentViewOfImage();
+					//testImageData();
+				}
+			}
+			
+			canvas.addEventListener("click",function(e){
+				var x = e.x;
+				var y = e.y;
+				var rectPoint = nearestRectangle(x,y);
+				createRect(rectPoint);
+				context2.putImageData(backImageRect,0,0);
+				console.log(rectPoint);
+			});
+		}
+		
+		var backImageRect;
+		var backPoint;
+		function createRect(point){
+			if(backPoint && backImageRect){
+				context.putImageData(backImageRect,backPoint[0]*unit,backPoint[1]*unit);
+			}
+
+			backImageRect = context.getImageData(point[0]*unit,point[1]*unit,unit,unit);
+			backPoint = point;
+			
+			context.save();
+			context.strokeStyle="#ff0000";
+			context.lineWidth = 1;
+			context.strokeRect(point[0]*unit+1,point[1]*unit+1,unit-2,unit-2);
+			context.restore();
+		}
+		function nearestRectangle(x,y){
+			return [Math.floor((x-canvasX)/unit),Math.floor((y-canvasY)/unit)];
+		}
+		
+		function currentViewOfImage(){
+			imgData = context.getImageData(imageOffsetX, imageOffsetY,imageViewWidth,imageViewHeight);
+		}
+		function testImageData(){
+	
+			
+			context2.putImageData(imgData,0,0);
+			
+			console.log(imgData.width);
+			console.log(imgData.height);
+			console.log(imgData.data);
+			
+			for(var i = 0;i<imgData.width;i++){
+				var idx = (i+1)*4-1;
+				var alpha = imgData.data[idx];
+				if(alpha == 0){
+					console.log("alpha: "+alpha);
+				}
+				
+			}
+			
+			//console.log(imgData.data[imgData.width*4]);
+		}
+	</script>
+	<body onload="start()">
+		<canvas id="mycanvas" width="200" height="200"></canvas>
+		<canvas id="mycanvas2" width="200" height="200"></canvas>
+	</body>
+</html>
