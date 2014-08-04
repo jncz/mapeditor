@@ -1,0 +1,34 @@
+html,body{
+	margin:0px;
+	padding:0px;
+}
+.container{
+	display:flex;
+	flex-flow:row;
+	border:1px solid red;
+	margin-left:10px;
+	margin-top:0px;
+}
+.leftPanel{
+	border-right:1px solid red;
+}
+.rightPanel{
+	border-left:1px solid red;
+}
+.tools{
+	margin-left:10px;
+	margin-right:10px;
+	border-left:1px solid red;
+	border-right:1px solid red;
+	width:50px;
+}
+.options{
+	height:100px;
+}
+#srcCanvas{
+	border-top:1px solid red;
+	border-bottom:1px solid red;
+}
+#hiddenCanvas{
+	border:1px solid blue;
+}

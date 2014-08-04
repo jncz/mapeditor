@@ -1,99 +1,205 @@
 <html>
 	<head>
+		<meta http-equiv=Content-Type content="text/html;charset=utf-8">
 		<title>Map Editor</title>
+		<link rel="stylesheet" href="css/style.css">
+		<script type="text/javascript" src="js/main.js"></script>
 	</head>
-	<style>
-		html,body{
-			margin:0px;
-			padding:0px;
-		}
-		canvas{
-			border:1px solid red;
-		}
-	</style>
+	
 	<script>
 		var imageOffsetX = 0;
 		var imageOffsetY = 0;
 		
 		var unit = 32;
-		var imageViewWidth = unit*8;
-		var imageViewHeight = unit*8;
+		var imageViewWidth = unit*9;
+		var imageViewHeight = unit*18;
 		
-		function start(){
-			canvas = document.getElementById("mycanvas");
-			canvasX = canvas.offsetLeft;
-			canvasY = canvas.offsetTop;
-			context = canvas.getContext("2d");
+		var layerData = [[],[]];
+		
+		var srcMap;
+		var srcMapCurrentX = 0;
+		var srcMapCurrentY = 0;
+		
+		function __initCanvas(){
+			SrcMapManager.init();
+			TargetMapManager.init();
+		}
+		
+		function __initEvent(){
+			canvas.addEventListener("click",function(e){
+				var rectPoint = nearestRectangleByLocation(e,canvas);
+				selectedImageData(rectPoint);
+				createRect(context,rectPoint);
+			});
 			
-			canvas2 = document.getElementById("mycanvas2");
-			context2 = canvas2.getContext("2d");
-		
+			document.body.addEventListener("keydown",function(e){
+				console.log(e.keyCode);
+				if(e.keyCode == 37){
+					//left
+					if(srcMapCurrentX>0){
+						srcMapCurrentX--;
+					}
+					
+				}else if(e.keyCode == 38){
+					//up
+					if(srcMapCurrentY>0){
+						srcMapCurrentY--;
+					}
+				}else if(e.keyCode == 39){
+					//right
+					if(srcMapCurrentX<((srcMap.width-imageViewWidth)/unit)){
+						srcMapCurrentX++;
+					}
+				}else if(e.keyCode == 40){
+					//down
+					if(srcMapCurrentY<((srcMap.height-imageViewHeight)/unit)){
+						srcMapCurrentY++;
+					}
+				}
+				context.clearRect(0,0,imageViewWidth,imageViewHeight);
+				context.drawImage(srcMap,srcMapCurrentX*unit,srcMapCurrentY*unit,imageViewWidth,imageViewHeight,0,0,imageViewWidth,imageViewHeight);
+			});
+			var canvas2PaintStart = false;
+			var canvas2DBLClickHandler = function(e){
+											var rectPoint = nearestRectangleByLocation(e,canvas2);
+											context2.putImageData(backImageRect,rectPoint[0]*unit,rectPoint[1]*unit);
+											canvas2PaintStart = !canvas2PaintStart;
+											layerData[0].push(rectPoint);
+										 };
+			var canvas2ClickHandler = function(e){
+											var rectPoint = nearestRectangleByLocation(e,canvas2);
+											context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
+										};
+			canvas2.addEventListener("dblclick",canvas2DBLClickHandler);
+			
+			canvas2.addEventListener("mousemove",function(e){
+				if(!canvas2PaintStart){
+					return;
+				}
+				var rectPoint = nearestRectangleByLocation(e,canvas2);
+				context2.putImageData(backImageRect,rectPoint[0]*unit,rectPoint[1]*unit);
+				layerData[0].push(rectPoint);
+			});
+			
+			var deleteClip = document.getElementById("deleteClip");
+			deleteClip.addEventListener("click",function(e){
+				if(deleteClip.value == "delete"){
+					//删除模式
+					deleteClip.innerHTML = "离开删除模式";
+					deleteClip.value = "none";
+					
+					//删除模式下，给canvas2注册click事件，同时取消dblclick事件
+					canvas2.removeEventListener("dblclick",canvas2DBLClickHandler);
+					canvas2.addEventListener("click",canvas2ClickHandler);
+				}else{
+					//按钮显示为“进入删除模式”，则当前模式为"非删除模式"
+					deleteClip.innerHTML = "进入删除模式";
+					deleteClip.value = "delete";
+					canvas2.addEventListener("dblclick",canvas2DBLClickHandler);
+					canvas2.removeEventListener("click",canvas2ClickHandler);
+				}
+			});
+			
+			var layers = document.getElementsByName("layers");
+			for(var i = 0;i<layers.length;i++){
+				layers[i].addEventListener("click",function(){
+					if(!this.checked){
+						//context2.alpha = 0.1;
+						context3.globalAlpha = 0.1;
+						var data = context.getImageData(0,0,1024,768);
+						console.log(data);
+						context3.drawImage(canvas2,0,0,1024,768,0,0,1024,768);
+						context2.clearRect(0,0,1024,768);
+						context2.drawImage(canvas3,0,0,1024,768,0,0,1024,768);
+						
+						
+					}
+				});
+			}
+		}
+		function __initSrcCanvas(){
 			var img = new Image();
 			img.src = "map.png";
 			img.onload=function(){
 				if(img.complete==true){
+					srcMap = img;
 					context.drawImage(img,0,0,imageViewWidth,imageViewHeight,0,0,imageViewWidth,imageViewHeight);
 					currentViewOfImage();
-					//testImageData();
 				}
 			}
-			
-			canvas.addEventListener("click",function(e){
-				var x = e.x;
-				var y = e.y;
-				var rectPoint = nearestRectangle(x,y);
-				createRect(rectPoint);
-				context2.putImageData(backImageRect,0,0);
-				console.log(rectPoint);
-			});
+		}
+		function start(){
+			__initCanvas();
+			__initEvent();
+			__initSrcCanvas();
 		}
 		
 		var backImageRect;
 		var backPoint;
-		function createRect(point){
+		function selectedImageData(point){
 			if(backPoint && backImageRect){
 				context.putImageData(backImageRect,backPoint[0]*unit,backPoint[1]*unit);
 			}
-
 			backImageRect = context.getImageData(point[0]*unit,point[1]*unit,unit,unit);
 			backPoint = point;
-			
-			context.save();
-			context.strokeStyle="#ff0000";
-			context.lineWidth = 1;
-			context.strokeRect(point[0]*unit+1,point[1]*unit+1,unit-2,unit-2);
-			context.restore();
 		}
-		function nearestRectangle(x,y){
-			return [Math.floor((x-canvasX)/unit),Math.floor((y-canvasY)/unit)];
+		
+		var backSecondImageRect;
+		var backSecondPoint;
+		function selectedSecondCanvasImageData(point){
+			if(backSecondPoint && backSecondImageRect){
+				context2.putImageData(backSecondImageRect,backSecondPoint[0]*unit,backSecondPoint[1]*unit);
+			}
+			backSecondImageRect = context2.getImageData(point[0]*unit,point[1]*unit,unit,unit);
+			backSecondPoint = point;
+		}
+		
+		
+		function createRect(ctx,point){
+			ctx.save();
+			ctx.strokeStyle="#ff0000";
+			ctx.lineWidth = 1;
+			ctx.strokeRect(point[0]*unit+1,point[1]*unit+1,unit-2,unit-2);
+			ctx.restore();
+		}
+		
+		function nearestRectangleByLocation(e,canvas){
+			var x = e.x;
+			var y = e.y;
+			
+			var canvasX = canvas.offsetLeft-document.body.scrollLeft;
+			var canvasY = canvas.offsetTop-document.body.scrollTop;
+			
+			return nearestRectangle(x,y,canvasX,canvasY);
+		}
+		function nearestRectangle(x,y,dx,dy){
+			return [Math.floor((x-dx)/unit),Math.floor((y-dy)/unit)];
 		}
 		
 		function currentViewOfImage(){
 			imgData = context.getImageData(imageOffsetX, imageOffsetY,imageViewWidth,imageViewHeight);
 		}
-		function testImageData(){
-	
-			
-			context2.putImageData(imgData,0,0);
-			
-			console.log(imgData.width);
-			console.log(imgData.height);
-			console.log(imgData.data);
-			
-			for(var i = 0;i<imgData.width;i++){
-				var idx = (i+1)*4-1;
-				var alpha = imgData.data[idx];
-				if(alpha == 0){
-					console.log("alpha: "+alpha);
-				}
-				
-			}
-			
-			//console.log(imgData.data[imgData.width*4]);
-		}
 	</script>
 	<body onload="start()">
-		<canvas id="mycanvas" width="200" height="200"></canvas>
-		<canvas id="mycanvas2" width="200" height="200"></canvas>
+		<div class="container">
+			<div class="leftPanel">
+				<div class="options">cross:</div>
+				<canvas id="srcCanvas" width="300" height="600"></canvas>
+			</div>
+			<div class="tools">
+				<button>画笔</button>
+				<button>填充</button>
+				<button id="deleteClip" value="delete">进入删除模式</button>
+				<fieldset>
+					<legend>图层</legend>
+					<input type="radio" name="layers" value="bg" checked>背景</input>
+					<input type="radio" name="layers" value="jz">建筑</input>
+				</fieldset>
+			</div>
+			<div class="rightPanel">
+				<canvas id="targetCanvas" width="1024" height="768"></canvas>
+			</div>
+		</div>
+		<canvas id="hiddenCanvas" width="1024" height="768" style="display:none"></canvas>
 	</body>
 </html>
