@@ -32,3 +32,12 @@ html,body{
 #hiddenCanvas{
 	border:1px solid blue;
 }
+.redBtn{
+	background-color:red;
+}
+#mapSizeX,#mapSizeY{
+	width:50px;
+}
+#targetCanvas{
+	border:1px solid blue;
+}
