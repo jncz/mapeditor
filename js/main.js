@@ -52,11 +52,23 @@ var SrcMapManager = {
 				createRect(SrcMapManager.context,rectPoint);
 			});
 	},
+	outofRange : function(point,currentPoint){
+		var x = point[0];
+		var y = point[1];
+		
+		if(x >=0 || y >=0){
+			return false;
+		}
+		return true;
+	},
 	selectImageData : function(point){
 		//选中某个单元之后，会在该单元上绘制一个矩形用来标识选择区域，但是当选中其他区域之后，之前的选中的区域中的矩形无法消失
 		//所以，变通的方式是，将绘制矩形之前的矩形区域的图形备份，当选择其他区域之后，将之前的选区用备份的图像信息填充
 		if(this.backPoint && this.backImageRect){
-			this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
+			if(!this.outofRange(this.backPoint,point)){
+				this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
+			}
+			
 		}
 		this.backImageRect = this.context.getImageData(point[0]*unit,point[1]*unit,unit,unit);
 		this.backPoint = point;
@@ -74,11 +86,13 @@ var SrcMapManager = {
 }
 
 var TargetMapManager = {
+	targetMapSizeX : 0,
+	targetMapSizeY : 0,
 	init : function(){
 		canvas2 = document.getElementById("targetCanvas");
 		context2 = canvas2.getContext("2d");
-		imageViewWidth = canvas2.width;
-		imageViewHeight = canvas2.height;
+		this.targetMapSizeX = canvas2.width;
+		this.targetMapSizeY = canvas2.height;
 		canvas3 = document.getElementById("hiddenCanvas");
 		context3 = hiddenCanvas.getContext("2d");
 		
@@ -87,7 +101,7 @@ var TargetMapManager = {
 		LayerManager.init();
 	},
 	reset : function(){
-		context2.clearRect(0,0,imageViewWidth,imageViewHeight);
+		context2.clearRect(0,0,this.targetMapSizeX,this.targetMapSizeY);
 	},
 	regEvent : function(){
 			paintStarted = false;
@@ -102,7 +116,7 @@ var TargetMapManager = {
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
 		context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 		paintStarted = !paintStarted;
-		DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
+		DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 	},
 	mapResize : function(x,y){
 		canvas2.width = x;
@@ -116,7 +130,7 @@ var TargetMapManager = {
 					}
 					var rectPoint = nearestRectangleByLocation(e,canvas2);
 					context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
+					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 				};
 		canvas2.addEventListener("mousemove",continuesPaintHandler);
 
@@ -132,7 +146,7 @@ var TargetMapManager = {
 		nonContinuesPaintHandler = function(e){
 			var rectPoint = nearestRectangleByLocation(e,canvas2);
 			context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
+			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 		}
 		canvas2.addEventListener("click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
@@ -162,6 +176,7 @@ var ToolManager = {
 		DeleteBtnManager.init();
 		MainFrameManager.init();
 		MapResizer.init();
+		MapExporter.init();
 	},
 	regEvent : function(){
 		this.showAllBtn.addEventListener("click",function(){
@@ -234,21 +249,29 @@ var MainFrameManager = {
 	toLeft : function(){
 		if(this.srcMapCurrentX>0){
 			this.srcMapCurrentX--;
+			var p = SrcMapManager.backPoint;
+			p[0] = p[0]+1;
 		}
 	},
 	toRight : function(){
 		if(this.srcMapCurrentX<((srcMap.width-imageViewWidth)/unit)){
 			this.srcMapCurrentX++;
+			var p = SrcMapManager.backPoint;
+			p[0] = p[0]-1;
 		}
 	},
 	toUp : function(){
 		if(this.srcMapCurrentY>0){
 			this.srcMapCurrentY--;
+			var p = SrcMapManager.backPoint;
+			p[1] = p[1]+1;
 		}
 	},
 	toDown : function(){
 		if(this.srcMapCurrentY<((srcMap.height-imageViewHeight)/unit)){
 			this.srcMapCurrentY++;
+			var p = SrcMapManager.backPoint;
+			p[1] = p[1]-1;
 		}
 	},
 	
@@ -342,6 +365,16 @@ var DataManager = {
 			}
 			if(!this.exist(this.data[idx],input.point)){
 				this.data[idx].push({point:input.point,imgPoint:input.srcMapPoint});
+			}else{
+				for(var i = 0;i<this.data[idx].length;i++){
+					var d = this.data[idx][i];
+					var p = d.point;
+					if(p[0] == input.point[0] && p[1] == input.point[1]){
+						d.imgPoint = input.srcMapPoint;
+						break;
+					}
+				}
+				
 			}
 	},
 	remove : function(input){
@@ -416,9 +449,31 @@ var LayerManager = {
 }
 
 
-
+/**
+{
+	width:100,
+	height:100,
+	unit:32,
+	srcMap:"path",
+	layers:[{
+				idx:0,
+				point:[x,y],
+			},..,..],
+}
+*/
 var MapExporter = {
+	self : null,
 	init : function(){
-		
+		this.self = $("exportMap");
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		this.self.addEventListener("click",function(){
+			that.exportMap();
+		});
+	},
+	exportMap : function(){
+		console.log(DataManager.data);
 	},
 }
