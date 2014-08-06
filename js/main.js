@@ -66,9 +66,7 @@ var SrcMapManager = {
 		//所以，变通的方式是，将绘制矩形之前的矩形区域的图形备份，当选择其他区域之后，将之前的选区用备份的图像信息填充
 		if(this.backPoint && this.backImageRect){
 			if(!this.outofRange(this.backPoint,point)){
-				//this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
-				convertImageDataToCanvas(this.backImageRect,canvas3,context3);
-				this.context.drawImage(canvas3,this.backPoint[0]*unit,this.backPoint[1]*unit);
+				this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
 			}
 			
 		}
