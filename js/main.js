@@ -66,7 +66,9 @@ var SrcMapManager = {
 		//所以，变通的方式是，将绘制矩形之前的矩形区域的图形备份，当选择其他区域之后，将之前的选区用备份的图像信息填充
 		if(this.backPoint && this.backImageRect){
 			if(!this.outofRange(this.backPoint,point)){
-				this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
+				//this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
+				convertImageDataToCanvas(this.backImageRect,canvas3,context3);
+				this.context.drawImage(canvas3,this.backPoint[0]*unit,this.backPoint[1]*unit);
 			}
 			
 		}
@@ -114,7 +116,9 @@ var TargetMapManager = {
 	},
 	paint : function(e){
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
-		context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+		//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+		convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
+		context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
 		paintStarted = !paintStarted;
 		DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 	},
@@ -129,7 +133,9 @@ var TargetMapManager = {
 						return;
 					}
 					var rectPoint = nearestRectangleByLocation(e,canvas2);
-					context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+					//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+					convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
+					context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
 					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 				};
 		canvas2.addEventListener("mousemove",continuesPaintHandler);
@@ -145,7 +151,9 @@ var TargetMapManager = {
 		
 		nonContinuesPaintHandler = function(e){
 			var rectPoint = nearestRectangleByLocation(e,canvas2);
-			context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+			//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+			convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
+			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
 			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
 		}
 		canvas2.addEventListener("click",nonContinuesPaintHandler);
@@ -363,9 +371,11 @@ var DataManager = {
 				idx = this.layerIndex.length - 1;
 				this.data.push([]);
 			}
-			if(!this.exist(this.data[idx],input.point)){
+			if(!this.exist(this.data[idx],input)){
 				this.data[idx].push({point:input.point,imgPoint:input.srcMapPoint});
-			}else{
+			}
+			/**
+			else{
 				for(var i = 0;i<this.data[idx].length;i++){
 					var d = this.data[idx][i];
 					var p = d.point;
@@ -376,6 +386,7 @@ var DataManager = {
 				}
 				
 			}
+			*/
 	},
 	remove : function(input){
 		var layer = input.layer;
@@ -401,7 +412,8 @@ var DataManager = {
 		for(var i = 0;i<datas.length;i++){
 			var d = datas[i];
 			var p = d.point;
-			if(p[0] == input[0] && p[1] == input[1]){
+			var img = d.imgPoint;
+			if(p[0] == input.point[0] && p[1] == input.point[1] && input.srcMapPoint[0] == img[0] && input.srcMapPoint[1] == img[1]){
 				return true;
 			}
 		}

@@ -27,3 +27,10 @@ function nearestRectangle(x,y,dx,dy){
 function $(id){
 	return document.getElementById(id);
 }
+
+function convertImageDataToCanvas(imgData,canv,ctx){
+	canv.width = imgData.width;
+	canv.height = imgData.height;
+	
+	ctx.putImageData(imgData,0,0);
+}
