@@ -14,6 +14,7 @@ var srcMap;//原始的图片素材对象
 var continuesPaintHandler;
 
 var currentLayer = 0;//多层的时候，默认显示的层
+var showAllLayer = false;
 
 var SrcMapManager = {
 	self : null,
@@ -76,11 +77,17 @@ var TargetMapManager = {
 	init : function(){
 		canvas2 = document.getElementById("targetCanvas");
 		context2 = canvas2.getContext("2d");
-		
+		imageViewWidth = canvas2.width;
+		imageViewHeight = canvas2.height;
 		canvas3 = document.getElementById("hiddenCanvas");
 		context3 = hiddenCanvas.getContext("2d");
 		
 		this.regEvent();
+		
+		LayerManager.init();
+	},
+	reset : function(){
+		context2.clearRect(0,0,imageViewWidth,imageViewHeight);
 	},
 	regEvent : function(){
 			paintStarted = false;
@@ -95,7 +102,7 @@ var TargetMapManager = {
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
 		context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 		paintStarted = !paintStarted;
-		DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
+		DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
 	},
 	mapResize : function(x,y){
 		canvas2.width = x;
@@ -109,7 +116,7 @@ var TargetMapManager = {
 					}
 					var rectPoint = nearestRectangleByLocation(e,canvas2);
 					context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-					DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
+					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
 				};
 		canvas2.addEventListener("mousemove",continuesPaintHandler);
 
@@ -125,7 +132,7 @@ var TargetMapManager = {
 		nonContinuesPaintHandler = function(e){
 			var rectPoint = nearestRectangleByLocation(e,canvas2);
 			context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-			DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
+			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0],SrcMapManager.backPoint[1]],opt:OPT_ADD});
 		}
 		canvas2.addEventListener("click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
@@ -139,11 +146,16 @@ var TargetMapManager = {
 		canvas2.removeEventListener("click",this.clean);
 		DeleteBtnManager.leaveDeleteMode();
 	},
+	showCurrentLayer : function(){
+		this.reset();
+		LayerManager.showCurrentLayer();
+	},
 }
 
 var ToolManager = {
+	showAllBtn : null,
 	init : function(){
-
+		this.showAllBtn = $("showAllLayer");
 		this.regEvent();
 		
 		ContinueBtnManager.init();
@@ -152,7 +164,14 @@ var ToolManager = {
 		MapResizer.init();
 	},
 	regEvent : function(){
-			
+		this.showAllBtn.addEventListener("click",function(){
+			if(this.checked){
+				showAllLayer = true;
+			}else{
+				showAllLayer = false;
+			}
+			TargetMapManager.showCurrentLayer();
+		});
 	}
 }
 
@@ -287,6 +306,21 @@ var ContinueBtnManager = {
 var DataManager = {
 	layerIndex : [],
 	data : [],
+	addLayer : function(layer){
+		layer = 1*layer;//convert to number
+		if(!this.layerExist(layer)){
+			this.layerIndex.push(layer);
+			this.data.push([]);
+		}
+	},
+	getByLayer : function(layer){
+		layer = 1*layer;//convert to number
+		var idx = this.layerIndex.indexOf(layer);
+		if(idx != -1){
+			return this.data[idx];
+		}
+		return [];
+	},
 	/**
 	@param param {layer:layerInfo,point:[x,y],opt:OPT_ADD/OPT_REMOVE}
 	*/
@@ -299,6 +333,7 @@ var DataManager = {
 	},
 	add : function(input){
 			var layer = input.layer;
+			layer = 1*layer;//convert to number
 			var idx = this.layerIndex.indexOf(layer);
 			if(idx == -1){
 				this.layerIndex.push(layer);
@@ -306,11 +341,12 @@ var DataManager = {
 				this.data.push([]);
 			}
 			if(!this.exist(this.data[idx],input.point)){
-				this.data[idx].push(input.point);
+				this.data[idx].push({point:input.point,imgPoint:input.srcMapPoint});
 			}
 	},
 	remove : function(input){
 		var layer = input.layer;
+		layer = 1*layer;//convert to number
 		var idx = this.layerIndex.indexOf(layer);
 		if(idx != -1){
 			var datas = this.data[idx];
@@ -325,15 +361,64 @@ var DataManager = {
 		}
 	},
 	layerExist : function(layer){
+		layer = 1*layer;//convert to number
 		return this.layerIndex.indexOf(layer)!=-1;
 	},
 	exist : function(datas,input){
 		for(var i = 0;i<datas.length;i++){
 			var d = datas[i];
-			if(d[0] == input[0] && d[1] == input[1]){
+			var p = d.point;
+			if(p[0] == input[0] && p[1] == input[1]){
 				return true;
 			}
 		}
 		return false;
+	},
+}
+
+var LayerManager = {
+	init : function(){
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		var nodes = document.getElementsByName("layers");
+		
+		for(var i=0;i<nodes.length;i++){
+			DataManager.addLayer(nodes[i].value);
+			nodes[i].addEventListener("click",function(){
+				if(this.checked){
+					currentLayer = 1*this.value;//make sure the currentLayer is Number
+					TargetMapManager.showCurrentLayer();
+					that.maskOtherLayers();
+				}
+			});
+		}
+	},
+	showCurrentLayer : function(){
+		for(var i=0;i<DataManager.layerIndex.length;i++){
+			var data = DataManager.data[i];
+			context2.save();
+			context2.globalAlpha = showAllLayer?1:((i == currentLayer)?1:LAYER_ALPHA);
+			for(var x = 0;x<data.length;x++){
+				var d = data[x];
+				var p = d.point;
+				var imgPoint = d.imgPoint;
+				context2.drawImage(srcMap,imgPoint[0]*unit,imgPoint[1]*unit,unit,unit,p[0]*unit,p[1]*unit,unit,unit);
+			}
+			context2.restore();
+		}
+		
+	},
+	maskOtherLayers : function(){
+		//TODO
+	},
+}
+
+
+
+var MapExporter = {
+	init : function(){
+		
 	},
 }

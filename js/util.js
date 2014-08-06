@@ -1,6 +1,8 @@
 OPT_REMOVE = 1;//为DataManager定义两个操作类型
 OPT_ADD = 2;
 
+LAYER_ALPHA = 0.3;//非当前图层透明度
+
 function createRect(ctx,point){
 	ctx.save();
 	ctx.strokeStyle="#ff0000";
