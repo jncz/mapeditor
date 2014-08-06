@@ -11,7 +11,9 @@ var imageViewHeight = unit*18;
 var imgPath = "map.png";//图片素材的路径
 var srcMap;//原始的图片素材对象
 
-var layerData = [[],[]];
+var continuesPaintHandler;
+
+var currentLayer = 0;//多层的时候，默认显示的层
 
 var SrcMapManager = {
 	self : null,
@@ -81,31 +83,61 @@ var TargetMapManager = {
 		this.regEvent();
 	},
 	regEvent : function(){
-			canvas2PaintStart = false;
-			canvas2DBLClickHandler = function(e){
-											var rectPoint = nearestRectangleByLocation(e,canvas2);
-											context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-											canvas2PaintStart = !canvas2PaintStart;
-											layerData[0].push(rectPoint);
-										 };
-			canvas2ClickHandler = function(e){
-											var rectPoint = nearestRectangleByLocation(e,canvas2);
-											context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
-										};
-			canvas2.addEventListener("dblclick",canvas2DBLClickHandler);
-			
-			canvas2.addEventListener("mousemove",function(e){
-				if(!canvas2PaintStart){
-					return;
-				}
-				var rectPoint = nearestRectangleByLocation(e,canvas2);
-				context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-				layerData[0].push(rectPoint);
-			});
+			paintStarted = false;
+			this.disableContinuesMode();
+	},
+	clean : function(e){
+		var rectPoint = nearestRectangleByLocation(e,canvas2);
+		context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
+		DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_REMOVE});
+	},
+	paint : function(e){
+		var rectPoint = nearestRectangleByLocation(e,canvas2);
+		context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+		paintStarted = !paintStarted;
+		DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
 	},
 	mapResize : function(x,y){
 		canvas2.width = x;
 		canvas2.height = y;
+	},
+	enableContinuesMode : function(){
+		canvas2.addEventListener("dblclick",this.paint);
+		continuesPaintHandler = function(e){
+					if(!paintStarted){
+						return;
+					}
+					var rectPoint = nearestRectangleByLocation(e,canvas2);
+					context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+					DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
+				};
+		canvas2.addEventListener("mousemove",continuesPaintHandler);
+
+		canvas2.removeEventListener("click",nonContinuesPaintHandler);
+	},
+	disableContinuesMode : function(){
+		canvas2.removeEventListener("dblclick",this.paint);
+		
+		if(continuesPaintHandler){
+			canvas2.removeEventListener("mousemove",continuesPaintHandler);
+		}
+		
+		nonContinuesPaintHandler = function(e){
+			var rectPoint = nearestRectangleByLocation(e,canvas2);
+			context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
+			DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_ADD});
+		}
+		canvas2.addEventListener("click",nonContinuesPaintHandler);
+		this.disableDeleteMode();
+		
+	},
+	enableDeleteMode : function(){
+		canvas2.addEventListener("click",this.clean);
+		DeleteBtnManager.enterDeleteMode();
+	},
+	disableDeleteMode : function(){
+		canvas2.removeEventListener("click",this.clean);
+		DeleteBtnManager.leaveDeleteMode();
 	},
 }
 
@@ -114,6 +146,7 @@ var ToolManager = {
 
 		this.regEvent();
 		
+		ContinueBtnManager.init();
 		DeleteBtnManager.init();
 		MainFrameManager.init();
 		MapResizer.init();
@@ -132,9 +165,9 @@ var DeleteBtnManager = {
 	regEvent : function(){
 		this.self.addEventListener("click",function(e){
 				if(this.value == "delete"){
-					DeleteBtnManager.enterDeleteMode();
+					TargetMapManager.enableDeleteMode();
 				}else{
-					DeleteBtnManager.leaveDeleteMode();
+					TargetMapManager.disableDeleteMode();
 				}
 			});
 	},
@@ -143,19 +176,12 @@ var DeleteBtnManager = {
 		this.self.innerHTML = "离开删除模式";
 		this.self.value = "none";
 		this.self.className = "redBtn";
-		
-		//删除模式下，给canvas2注册click事件，同时取消dblclick事件
-		canvas2.removeEventListener("dblclick",canvas2DBLClickHandler);
-		canvas2.addEventListener("click",canvas2ClickHandler);
 	},
 	leaveDeleteMode : function(){
 		//按钮显示为“进入删除模式”，则当前模式为"非删除模式"
 		this.self.innerHTML = "进入删除模式";
 		this.self.value = "delete";
 		this.self.className = "";
-		
-		canvas2.addEventListener("dblclick",canvas2DBLClickHandler);
-		canvas2.removeEventListener("click",canvas2ClickHandler);
 	}
 }
 
@@ -168,21 +194,22 @@ var MainFrameManager = {
 		this.regEvent();
 	},
 	regEvent : function(){
+		var that = this;
 		this.self.addEventListener("keydown",function(e){
 				if(e.keyCode == 37){
 					//left
-					MainFrameManager.toLeft();
+					that.toLeft();
 				}else if(e.keyCode == 38){
 					//up
-					MainFrameManager.toUp();
+					that.toUp();
 				}else if(e.keyCode == 39){
 					//right
-					MainFrameManager.toRight();
+					that.toRight();
 				}else if(e.keyCode == 40){
 					//down
-					MainFrameManager.toDown();
+					that.toDown();
 				}
-				SrcMapManager.paint(MainFrameManager.srcMapCurrentX,MainFrameManager.srcMapCurrentY);
+				SrcMapManager.paint(that.srcMapCurrentX,that.srcMapCurrentY);
 			});
 	},
 	toLeft : function(){
@@ -220,5 +247,93 @@ var MapResizer = {
 			var y = $("mapSizeY").value;
 			TargetMapManager.mapResize(x,y);
 		});
+	},
+}
+
+var ContinueBtnManager = {
+	self : null,
+	init : function(){
+		this.self = $("continueModeBtn");
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		this.self.addEventListener("click",function(e){
+				if(this.value == "continues"){
+					that.enterContinuesMode();
+				}else{
+					that.leaveContinuesMode();
+				}
+			});
+	},
+	enterContinuesMode : function(){
+		//进入连续涂刷模式
+		this.self.innerHTML = "离开连续模式";
+		this.self.value = "none";
+		this.self.className = "redBtn";
+		
+		TargetMapManager.enableContinuesMode();
+	},
+	leaveContinuesMode : function(){
+		//按钮显示为“进入连续模式”，则当前模式为"非连续模式"
+		this.self.innerHTML = "进入连续模式";
+		this.self.value = "continues";
+		this.self.className = "";
+		
+		TargetMapManager.disableContinuesMode();
+	},	
+}
+
+var DataManager = {
+	layerIndex : [],
+	data : [],
+	/**
+	@param param {layer:layerInfo,point:[x,y],opt:OPT_ADD/OPT_REMOVE}
+	*/
+	record : function(param){
+		if(param.opt == OPT_ADD){
+			this.add(param);
+		}else if(param.opt == OPT_REMOVE){
+			this.remove(param);
+		}
+	},
+	add : function(input){
+			var layer = input.layer;
+			var idx = this.layerIndex.indexOf(layer);
+			if(idx == -1){
+				this.layerIndex.push(layer);
+				idx = this.layerIndex.length - 1;
+				this.data.push([]);
+			}
+			if(!this.exist(this.data[idx],input.point)){
+				this.data[idx].push(input.point);
+			}
+	},
+	remove : function(input){
+		var layer = input.layer;
+		var idx = this.layerIndex.indexOf(layer);
+		if(idx != -1){
+			var datas = this.data[idx];
+			var foundIdx = -1;
+			for(var i=0;i<datas.length;i++){
+				if(datas[i][0] == input.point[0] && datas[i][1] == input.point[1]){
+					foundIdx = i;
+					break;
+				}
+			}
+			datas.splice(foundIdx,1);
+		}
+	},
+	layerExist : function(layer){
+		return this.layerIndex.indexOf(layer)!=-1;
+	},
+	exist : function(datas,input){
+		for(var i = 0;i<datas.length;i++){
+			var d = datas[i];
+			if(d[0] == input[0] && d[1] == input[1]){
+				return true;
+			}
+		}
+		return false;
 	},
 }

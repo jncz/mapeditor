@@ -26,8 +26,8 @@
 		}
 		function start(){
 			SrcMapManager.init();
-			TargetMapManager.init();
 			ToolManager.init();
+			TargetMapManager.init();
 		}
 	</script>
 	<body onload="start()">
@@ -40,6 +40,7 @@
 				<canvas id="srcCanvas" width="300" height="600"></canvas>
 			</div>
 			<div class="tools">
+				<button id="continueModeBtn" value="continues">进入连续模式</button>
 				<button id="deleteClip" value="delete">进入删除模式</button>
 				<fieldset>
 					<legend>图层</legend>
