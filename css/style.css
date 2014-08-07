@@ -41,3 +41,13 @@ html,body{
 #targetCanvas{
 	border:1px solid blue;
 }
+.hiddenMaskLayer{
+	display:none;
+	width:0;
+	height:0;
+}
+.showMaskLayer{
+	position:absolute;
+	display:block;
+	border:1px solid blue;
+}

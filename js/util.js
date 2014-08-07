@@ -32,10 +32,17 @@ function nearestRectangleByLocation(e,canvas){
 	var x = e.x;
 	var y = e.y;
 	
-	var canvasX = canvas.offsetLeft-document.body.scrollLeft;
-	var canvasY = canvas.offsetTop-document.body.scrollTop;
+	var xy = getElementPosition(canvas);
+	var canvasX = xy[0];
+	var canvasY = xy[1];
 	
 	return nearestRectangle(x,y,canvasX,canvasY);
+}
+
+function getElementPosition(ele){
+	var x = ele.offsetLeft-document.body.scrollLeft;
+	var y = ele.offsetTop-document.body.scrollTop;
+	return [x,y];
 }
 function nearestRectangle(x,y,dx,dy){
 	return [Math.floor((x-dx)/unit),Math.floor((y-dy)/unit)];
@@ -50,4 +57,10 @@ function convertImageDataToCanvas(imgData,canv,ctx){
 	canv.height = imgData.height;
 	
 	ctx.putImageData(imgData,0,0);
+}
+
+function regEvent(eles,eventType,listener){
+	eles.forEach(function(d,i,a){
+		d.addEventListener(eventType,listener);
+	});
 }

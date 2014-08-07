@@ -16,6 +16,8 @@ var continuesPaintHandler;
 var currentLayer = 0;//多层的时候，默认显示的层
 var showAllLayer = false;
 
+var paintRect = false;
+
 var SrcMapManager = {
 	self : null,
 	context : null,
@@ -28,7 +30,9 @@ var SrcMapManager = {
 		this.context = canvas.getContext("2d");
 		this.self = canvas;
 		this.initSrcMap();
+		MaskLayer.init();
 		this.enableImageSelect();
+		
 	},
 	initSrcMap : function(){
 		var p = new Promise(function(resolve,reject){
@@ -55,19 +59,30 @@ var SrcMapManager = {
 		this.self.addEventListener("mousedown",function(e){
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
 			that.rangeStart = rectPoint;
+			MaskLayer.hidden();
+			paintRect = true;
 		});
-		this.self.addEventListener("mousemove",function(e){
+
+		regEvent([this.self,MaskLayer.self],"mousemove",function(e){
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
 			//that.rangeStart = rectPoint;
-			if(that.rangeStart){
-				console.log("x: "+e.x+"  y: "+e.y);
+			console.log(paintRect);
+			if(that.rangeStart && paintRect){
+				//console.log("x: "+e.x+"  y: "+e.y);
+				var pos = getElementPosition(SrcMapManager.self);
+				var x = pos[0]+that.rangeStart[0]*unit;
+				var y = pos[1]+that.rangeStart[1]*unit;
+				var w = unit*(Math.abs(rectPoint[0]-that.rangeStart[0])+1);
+				var h = unit*(Math.abs(rectPoint[1]-that.rangeStart[1])+1);
+				MaskLayer.show(y,x,w,h);
 			}
 			
 		});
-		this.self.addEventListener("mouseup",function(e){
+		regEvent([this.self,MaskLayer.self],"mouseup",function(e){
+			console.log("mouse up");
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
 			that.rangeEnd = rectPoint;
-			
+			paintRect = false;
 			if(that.rangeStart && that.rangeEnd){
 				SrcMapManager.selectImageData(that.rangeStart,that.rangeEnd);
 				createRect(that.context,that.rangeStart,that.rangeEnd,that.getSelectedImageData(),canvas3,context3);
@@ -551,5 +566,26 @@ var MapExporter = {
 	},
 	exportMap : function(){
 		console.log(DataManager.data);
+	},
+}
+
+var MaskLayer = {
+	self : null,
+	init : function(){
+		this.self = $("maskLayer");
+		this.regEvent();
+	},
+	regEvent : function(){
+		
+	},
+	show : function(t,l,w,h){
+		this.self.className = "showMaskLayer";
+		this.self.style.width = w;
+		this.self.style.height = h;
+		this.self.style.top = t;
+		this.self.style.left = l;
+	},
+	hidden : function(){
+		this.self.className = "hiddenMaskLayer";
 	},
 }
