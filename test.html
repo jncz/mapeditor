@@ -20,7 +20,12 @@
 				<div class="options">地图大小,
 				x:<input type="number" id="mapSizeX" value="1024" min="100"> y:<input type="number" id="mapSizeY" value="768" min="100">
 				<button name="mapSizer" id="mapSizer">确定</button>
+				<div id="selectedElement"></div>
+				<div>可穿越：<input type="checkbox" name="cross" id="cross">可跳跃：<input type="checkbox" name="jump" id="jump">
+					<button id="saveMeta" disabled>存</button>
 				</div>
+				</div>
+
 				<div><button name="exportMap" id="exportMap">导出地图</button></div>
 				<canvas id="srcCanvas" width="300" height="600"></canvas>
 				<div id="maskLayer" width="0" height="0"></div>

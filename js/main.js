@@ -56,7 +56,7 @@ var SrcMapManager = {
 	enableImageSelect : function(){
 		var that = this;
 		
-		this.self.addEventListener("mousedown",function(e){
+		regEvent([this.self,MaskLayer.self],"mousedown",function(e){
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
 			that.rangeStart = rectPoint;
 			MaskLayer.hidden();
@@ -82,6 +82,8 @@ var SrcMapManager = {
 			if(that.rangeStart && that.rangeEnd){
 				SrcMapManager.selectImageData(that.rangeStart,that.rangeEnd);
 				createRect(that.context,that.rangeStart,that.rangeEnd,that.getSelectedImageData(),canvas3,context3);
+				showSelectedRange(that.rangeStart,that.rangeEnd,MainFrameManager.srcMapCurrentX,MainFrameManager.srcMapCurrentY);
+				enableMetaBtn();
 			}
 		});
 	},
@@ -262,6 +264,7 @@ var ToolManager = {
 		MapResizer.init();
 		MapExporter.init();
 		NewLayer.init();
+		MetaManager.init();
 	},
 	regEvent : function(){
 		this.showAllBtn.addEventListener("click",function(){
@@ -615,5 +618,53 @@ var AttrEditor = {
 		this.regEvent();
 	},
 	regEvent : function(){
+	},
+}
+
+var MetaManager = {
+	data : [],//data format: [{point:[x,y],attr:{cross:true,jump:true,..,..}},..,..]
+	init : function(){
+		this.regEvent();
+	},
+	regEvent : function(){
+		var btn = $("saveMeta");
+		var selectedEle = $("selectedElement");
+		var that = this;
+		btn.addEventListener("click",function(){
+			var spoint = [selectedEle.getAttribute("minX"),selectedEle.getAttribute("minY")];
+			var epoint = [selectedEle.getAttribute("maxX"),selectedEle.getAttribute("maxY")];
+			var c = $("cross").checked;
+			var j = $("jump").checked;
+			
+			
+			for(var i = spoint[0];i<=epoint[0];i++){//x
+				for(var x = spoint[1];x<=epoint[1];x++){//y
+					var attr = {cross:c,jump:j};
+					var point = [i,x];
+					that.save(point,attr);
+				}
+			}
+			
+		});
+	},
+	save : function(point,attr){
+		//TODO
+		console.log(point+attr.cross+attr.jump);
+		var d = this.get(point);
+		if(d){
+			d.attr = attr;//update
+		}else{
+			this.data.push({point:point,attr:attr});
+		}
+	},
+	get  : function(point){
+		for(var i = 0;i<this.data.length;i++){
+			var d = this.data[i];
+			var p = d.point;
+			if(p[0] == point[0] && p[1] == point[1]){
+				return d;
+			}
+		}
+		return null;
 	},
 }

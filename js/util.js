@@ -70,3 +70,29 @@ function regEvent(eles,eventType,listener){
 		d.addEventListener(eventType,listener);
 	});
 }
+
+function showSelectedRange(spoint,epoint,dx,dy){//在div id=selectedElement的元素中显示选择的区域
+	var ele = $("selectedElement");
+	
+	var maxX = Math.max(spoint[0],epoint[0])+dx;
+	var minX = Math.min(spoint[0],epoint[0])+dx;
+	var maxY = Math.max(spoint[1],epoint[1])+dy;
+	var minY = Math.min(spoint[1],epoint[1])+dy;
+	
+	var msg = "";
+	if(maxX == minX && maxY == minY){
+		msg = "point ->("+minX+","+minY+")"
+	}else{
+		msg = "("+minX+","+minY+") -->("+maxX+","+maxY+")";
+	}
+	ele.innerHTML = msg;
+	ele.setAttribute("minX",minX);
+	ele.setAttribute("maxX",maxX);
+	ele.setAttribute("minY",minY);
+	ele.setAttribute("maxY",maxY);
+}
+
+function enableMetaBtn(){
+	var ele = $("saveMeta");
+	ele.disabled=false;
+}
