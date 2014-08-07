@@ -318,15 +318,19 @@ var MainFrameManager = {
 				if(e.keyCode == 37){
 					//left
 					that.toLeft();
+					MaskLayer.hidden();
 				}else if(e.keyCode == 38){
 					//up
 					that.toUp();
+					MaskLayer.hidden();
 				}else if(e.keyCode == 39){
 					//right
 					that.toRight();
+					MaskLayer.hidden();
 				}else if(e.keyCode == 40){
 					//down
 					that.toDown();
+					MaskLayer.hidden();
 				}
 				SrcMapManager.paint(that.srcMapCurrentX,that.srcMapCurrentY);
 			});

@@ -32,16 +32,22 @@ function nearestRectangleByLocation(e,canvas){
 	var x = e.x;
 	var y = e.y;
 	
-	var xy = getElementPosition(canvas);
+	var xy = getElementPositionBaseViewPort(canvas);
 	var canvasX = xy[0];
 	var canvasY = xy[1];
 	
 	return nearestRectangle(x,y,canvasX,canvasY);
 }
-
-function getElementPosition(ele){
+//基于当前可视窗口的坐标，故减去滚动出去的部分
+function getElementPositionBaseViewPort(ele){
 	var x = ele.offsetLeft-document.body.scrollLeft;
 	var y = ele.offsetTop-document.body.scrollTop;
+	return [x,y];
+}
+
+function getElementPosition(ele){
+	var x = ele.offsetLeft;
+	var y = ele.offsetTop;
 	return [x,y];
 }
 function nearestRectangle(x,y,dx,dy){
