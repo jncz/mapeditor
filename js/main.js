@@ -261,6 +261,7 @@ var ToolManager = {
 		MainFrameManager.init();
 		MapResizer.init();
 		MapExporter.init();
+		NewLayer.init();
 	},
 	regEvent : function(){
 		this.showAllBtn.addEventListener("click",function(){
@@ -410,6 +411,33 @@ var ContinueBtnManager = {
 	},	
 }
 
+var NewLayer = {
+	self : null,
+	init : function(){
+		this.self = $("addNewLayer");
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		this.self.addEventListener("click",function(){
+			that.add();
+		});
+	},
+	add : function(){
+		var eles = document.getElementsByName("layers");
+		var len = eles.length;
+		var ele = document.createElement("input");
+		ele.type="radio";
+		ele.name="layers";
+		ele.value = len;
+		var tnode = document.createTextNode("层"+(len+1));
+		var parent = document.querySelector(".tools > fieldset");
+		parent.insertBefore(ele,$("showAllLayer"));
+		parent.insertBefore(tnode,$("showAllLayer"));
+		
+		LayerManager.regEvent();
+	},
+}
 var DataManager = {
 	layerIndex : [],
 	data : [],
@@ -570,5 +598,18 @@ var MaskLayer = {
 	},
 	hidden : function(){
 		this.self.className = "hiddenMaskLayer";
+	},
+}
+
+var AttrEditor = {
+	editor : null,
+	cross  : null,
+	init : function(){
+		this.editor = $("attrEditor");
+		this.cross = $("cross");
+		
+		this.regEvent();
+	},
+	regEvent : function(){
 	},
 }
