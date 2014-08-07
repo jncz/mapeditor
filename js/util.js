@@ -3,11 +3,28 @@ OPT_ADD = 2;
 
 LAYER_ALPHA = 0.3;//非当前图层透明度
 
-function createRect(ctx,point){
+function createRect(ctx,spoint,epoint,imgData,tempCanv,tempCtx){
 	ctx.save();
 	ctx.strokeStyle="#ff0000";
+	ctx.fillStyle="#ff0000";
 	ctx.lineWidth = 1;
-	ctx.strokeRect(point[0]*unit+1,point[1]*unit+1,unit-2,unit-2);
+
+	ctx.globalAlpha = 0.4;
+
+	var x = spoint[0]*unit;
+	var y = spoint[1]*unit;
+	var w = (Math.abs(epoint[0]-spoint[0])+1)*unit;
+	var h = (Math.abs(epoint[1]-spoint[1])+1)*unit;
+	
+	ctx.clearRect(x,y,w,h);
+	ctx.strokeRect(x+1,y+1,w-2,h-2);
+	ctx.fillRect(x,y,w,h);
+	convertImageDataToCanvas(imgData,tempCanv,tempCtx);
+	ctx.restore();
+	
+	ctx.save();
+	ctx.globalAlpha = 0.6;
+	ctx.drawImage(tempCanv,0,0,w,h,x,y,w,h);
 	ctx.restore();
 }
 

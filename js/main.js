@@ -21,6 +21,8 @@ var SrcMapManager = {
 	context : null,
 	backImageRect : null,
 	backPoint : null,
+	backSPoint : null,
+	backEPoint : null,
 	init : function(){
 		var canvas = document.getElementById("srcCanvas");
 		this.context = canvas.getContext("2d");
@@ -45,12 +47,35 @@ var SrcMapManager = {
 			SrcMapManager.paint();
 		});
 	},
+	rangeStart : null,
+	rangeEnd : null,
 	enableImageSelect : function(){
-		this.self.addEventListener("click",function(e){
-				var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
-				SrcMapManager.selectImageData(rectPoint);
-				createRect(SrcMapManager.context,rectPoint);
-			});
+		var that = this;
+		
+		this.self.addEventListener("mousedown",function(e){
+			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
+			that.rangeStart = rectPoint;
+		});
+		this.self.addEventListener("mousemove",function(e){
+			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
+			//that.rangeStart = rectPoint;
+			if(that.rangeStart){
+				console.log("x: "+e.x+"  y: "+e.y);
+			}
+			
+		});
+		this.self.addEventListener("mouseup",function(e){
+			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
+			that.rangeEnd = rectPoint;
+			
+			if(that.rangeStart && that.rangeEnd){
+				SrcMapManager.selectImageData(that.rangeStart,that.rangeEnd);
+				createRect(that.context,that.rangeStart,that.rangeEnd,that.getSelectedImageData(),canvas3,context3);
+			}
+		});
+	},
+	selectedRange : function(){
+		//TODO
 	},
 	outofRange : function(point,currentPoint){
 		var x = point[0];
@@ -61,17 +86,24 @@ var SrcMapManager = {
 		}
 		return true;
 	},
-	selectImageData : function(point){
+	selectImageData : function(spoint,epoint){
 		//选中某个单元之后，会在该单元上绘制一个矩形用来标识选择区域，但是当选中其他区域之后，之前的选中的区域中的矩形无法消失
 		//所以，变通的方式是，将绘制矩形之前的矩形区域的图形备份，当选择其他区域之后，将之前的选区用备份的图像信息填充
 		if(this.backPoint && this.backImageRect){
-			if(!this.outofRange(this.backPoint,point)){
+			if(!this.outofRange(this.backPoint,spoint)){
 				this.context.putImageData(this.backImageRect,this.backPoint[0]*unit,this.backPoint[1]*unit);
 			}
 			
 		}
-		this.backImageRect = this.context.getImageData(point[0]*unit,point[1]*unit,unit,unit);
-		this.backPoint = point;
+
+		this.backSPoint = spoint;
+		this.backEPoint = epoint;
+		if(this.backSPoint && this.backEPoint){
+			this.backImageRect = this.context.getImageData(spoint[0]*unit,spoint[1]*unit,(Math.abs(this.backSPoint[0]-this.backEPoint[0])+1)*unit,(Math.abs(this.backSPoint[1]-this.backEPoint[1])+1)*unit);
+		}
+		
+		this.backPoint = spoint;
+		
 	},
 	getSelectedImageData : function(){
 		return this.backImageRect;
@@ -134,7 +166,23 @@ var TargetMapManager = {
 					//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 					convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
 					context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
-					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
+					
+					var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+					var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+					var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+					var minY = Math.min(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+					
+					for(var x = minY;x<=maxY;x++){
+						var temp = rectPoint[0];
+						for(var i = minX;i<=maxX;i++){
+							srcMapPoint = [i+MainFrameManager.srcMapCurrentX,x+MainFrameManager.srcMapCurrentY];
+							
+							DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:srcMapPoint,opt:OPT_ADD});
+							rectPoint[0] = rectPoint[0]+1;
+						}
+						rectPoint[1] = rectPoint[1]+1;
+						rectPoint[0] = temp;//X到头之后，重新回到前面
+					}
 				};
 		canvas2.addEventListener("mousemove",continuesPaintHandler);
 
@@ -152,7 +200,25 @@ var TargetMapManager = {
 			//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 			convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
 			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
-			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:[SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY],opt:OPT_ADD});
+			var srcMapPoint = [];//SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY;
+			//FIXME
+			
+			var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+			var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+			var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+			var minY = Math.min(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+			
+			for(var x = minY;x<=maxY;x++){
+				var temp = rectPoint[0];
+				for(var i = minX;i<=maxX;i++){
+					srcMapPoint = [i+MainFrameManager.srcMapCurrentX,x+MainFrameManager.srcMapCurrentY];
+					
+					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:srcMapPoint,opt:OPT_ADD});
+					rectPoint[0] = rectPoint[0]+1;
+				}
+				rectPoint[1] = rectPoint[1]+1;
+				rectPoint[0] = temp;//X到头之后，重新回到前面
+			}
 		}
 		canvas2.addEventListener("click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
@@ -370,7 +436,7 @@ var DataManager = {
 				this.data.push([]);
 			}
 			if(!this.exist(this.data[idx],input)){
-				this.data[idx].push({point:input.point,imgPoint:input.srcMapPoint});
+				this.data[idx].push({point:[input.point[0],input.point[1]],imgPoint:[input.srcMapPoint[0],input.srcMapPoint[1]]});
 			}
 			/**
 			else{
