@@ -65,10 +65,7 @@ var SrcMapManager = {
 
 		regEvent([this.self,MaskLayer.self],"mousemove",function(e){
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
-			//that.rangeStart = rectPoint;
-			console.log(paintRect);
 			if(that.rangeStart && paintRect){
-				//console.log("x: "+e.x+"  y: "+e.y);
 				var pos = getElementPosition(SrcMapManager.self);
 				var x = pos[0]+that.rangeStart[0]*unit;
 				var y = pos[1]+that.rangeStart[1]*unit;
@@ -79,7 +76,6 @@ var SrcMapManager = {
 			
 		});
 		regEvent([this.self,MaskLayer.self],"mouseup",function(e){
-			console.log("mouse up");
 			var rectPoint = nearestRectangleByLocation(e,SrcMapManager.self);
 			that.rangeEnd = rectPoint;
 			paintRect = false;
@@ -89,9 +85,7 @@ var SrcMapManager = {
 			}
 		});
 	},
-	selectedRange : function(){
-		//TODO
-	},
+
 	outofRange : function(point,currentPoint){
 		var x = point[0];
 		var y = point[1];
@@ -156,8 +150,9 @@ var TargetMapManager = {
 	},
 	clean : function(e){
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
-		context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
+		//context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
 		DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_REMOVE});
+		TargetMapManager.showCurrentLayer();
 	},
 	paint : function(e){
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
@@ -215,7 +210,7 @@ var TargetMapManager = {
 			//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 			convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
 			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
-			var srcMapPoint = [];//SrcMapManager.backPoint[0]+MainFrameManager.srcMapCurrentX,SrcMapManager.backPoint[1]+MainFrameManager.srcMapCurrentY;
+			var srcMapPoint = [];
 			//FIXME
 			
 			var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
@@ -234,18 +229,20 @@ var TargetMapManager = {
 				rectPoint[1] = rectPoint[1]+1;
 				rectPoint[0] = temp;//X到头之后，重新回到前面
 			}
-		}
+		};
 		canvas2.addEventListener("click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
 		
 	},
 	enableDeleteMode : function(){
+		canvas2.removeEventListener("click",nonContinuesPaintHandler);
 		canvas2.addEventListener("click",this.clean);
 		DeleteBtnManager.enterDeleteMode();
 	},
 	disableDeleteMode : function(){
 		canvas2.removeEventListener("click",this.clean);
 		DeleteBtnManager.leaveDeleteMode();
+		canvas2.addEventListener("click",nonContinuesPaintHandler);
 	},
 	showCurrentLayer : function(){
 		this.reset();
@@ -453,19 +450,6 @@ var DataManager = {
 			if(!this.exist(this.data[idx],input)){
 				this.data[idx].push({point:[input.point[0],input.point[1]],imgPoint:[input.srcMapPoint[0],input.srcMapPoint[1]]});
 			}
-			/**
-			else{
-				for(var i = 0;i<this.data[idx].length;i++){
-					var d = this.data[idx][i];
-					var p = d.point;
-					if(p[0] == input.point[0] && p[1] == input.point[1]){
-						d.imgPoint = input.srcMapPoint;
-						break;
-					}
-				}
-				
-			}
-			*/
 	},
 	remove : function(input){
 		var layer = input.layer;
@@ -474,13 +458,16 @@ var DataManager = {
 		if(idx != -1){
 			var datas = this.data[idx];
 			var foundIdx = -1;
-			for(var i=0;i<datas.length;i++){
-				if(datas[i][0] == input.point[0] && datas[i][1] == input.point[1]){
+			for(var i=datas.length-1;i>=0;i--){//从后往前删除，最后加入的先删除，这样当有多层覆盖的时候，最表面的先被删掉
+				if(datas[i].point[0] == input.point[0] && datas[i].point[1] == input.point[1]){
 					foundIdx = i;
 					break;
 				}
 			}
-			datas.splice(foundIdx,1);
+			if(foundIdx != -1){
+				datas.splice(foundIdx,1);
+			}
+			
 		}
 	},
 	layerExist : function(layer){
@@ -514,7 +501,6 @@ var LayerManager = {
 				if(this.checked){
 					currentLayer = 1*this.value;//make sure the currentLayer is Number
 					TargetMapManager.showCurrentLayer();
-					that.maskOtherLayers();
 				}
 			});
 		}
@@ -533,9 +519,6 @@ var LayerManager = {
 			context2.restore();
 		}
 		
-	},
-	maskOtherLayers : function(){
-		//TODO
 	},
 }
 
