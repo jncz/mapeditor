@@ -256,8 +256,10 @@ var TargetMapManager = {
 
 var ToolManager = {
 	showAllBtn : null,
+	cleanBtn : null,
 	init : function(){
 		this.showAllBtn = $("showAllLayer");
+		this.cleanBtn = $("cleanMap");
 		this.regEvent();
 		
 		ContinueBtnManager.init();
@@ -277,6 +279,15 @@ var ToolManager = {
 			}
 			TargetMapManager.showCurrentLayer();
 		});
+		this.cleanBtn.addEventListener("click",function(){
+			var result = window.confirm("清除不可逆，确定吗");
+			if(result){
+				PersistManager.clear("map");
+				PersistManager.clear("layer");
+				window.location.reload();
+			}
+		});
+		
 	}
 }
 
@@ -701,8 +712,8 @@ var PersistManager = {
 	save : function(ns,obj){
 		this.store[ns] = JSON.stringify(obj);
 	},
-	clear : function(){
-		this.store.clear();
+	clear : function(ns){
+		this.store.removeItem(ns);
 	},
 	get : function(ns){
 		var d = this.store[ns];
