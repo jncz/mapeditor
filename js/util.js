@@ -96,3 +96,18 @@ function enableMetaBtn(){
 	var ele = $("saveMeta");
 	ele.disabled=false;
 }
+
+function showSelectedClipAttr(point,dx,dy){
+	var d = MetaManager.get([point[0]+dx,point[1]+dy]);
+	var crossEle = $("cross");
+	var jumpEle = $("jump");
+	if(d){
+		var cross = d.attr.cross;
+		var jump = d.attr.jump;
+		crossEle.checked = cross;
+		jumpEle.checked = jump;
+	}else{
+		crossEle.checked = false;
+		jumpEle.checked = false;
+	}
+}

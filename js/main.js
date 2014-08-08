@@ -49,6 +49,7 @@ var SrcMapManager = {
 		});
 		p.then(function(){
 			SrcMapManager.paint();
+			TargetMapManager.showCurrentLayer();
 		});
 	},
 	rangeStart : null,
@@ -84,6 +85,7 @@ var SrcMapManager = {
 				createRect(that.context,that.rangeStart,that.rangeEnd,that.getSelectedImageData(),canvas3,context3);
 				showSelectedRange(that.rangeStart,that.rangeEnd,MainFrameManager.srcMapCurrentX,MainFrameManager.srcMapCurrentY);
 				enableMetaBtn();
+				showSelectedClipAttr(that.rangeStart,MainFrameManager.srcMapCurrentX,MainFrameManager.srcMapCurrentY);
 			}
 		});
 	},
@@ -419,10 +421,14 @@ var ContinueBtnManager = {
 }
 
 var NewLayer = {
+	index : 0,
 	self : null,
 	init : function(){
 		this.self = $("addNewLayer");
 		this.regEvent();
+		var idx = PersistManager.get("layer");
+		this.index = (idx==[])?0:idx;
+		this.recreateLayer();
 	},
 	regEvent : function(){
 		var that = this;
@@ -431,6 +437,10 @@ var NewLayer = {
 		});
 	},
 	add : function(){
+		var idx = this.createLayer();
+		this.save(idx);
+	},
+	createLayer : function(){
 		var eles = document.getElementsByName("layers");
 		var len = eles.length;
 		var ele = document.createElement("input");
@@ -443,11 +453,23 @@ var NewLayer = {
 		parent.insertBefore(tnode,$("showAllLayer"));
 		
 		LayerManager.regEvent();
+		return len;
+	},
+	save : function(idx){
+		PersistManager.save("layer",{data:idx});
+	},
+	recreateLayer : function(){
+		for(var i=1;i<this.index;i++){
+			this.createLayer();
+		}
 	},
 }
 var DataManager = {
 	layerIndex : [],
 	data : [],
+	init : function(){
+		this.data = PersistManager.get("map");
+	},
 	addLayer : function(layer){
 		layer = 1*layer;//convert to number
 		if(!this.layerExist(layer)){
@@ -485,6 +507,8 @@ var DataManager = {
 			if(!this.exist(this.data[idx],input)){
 				this.data[idx].push({point:[input.point[0],input.point[1]],imgPoint:[input.srcMapPoint[0],input.srcMapPoint[1]]});
 			}
+			
+			PersistManager.save("map",{data:this.data});
 	},
 	remove : function(input){
 		var layer = input.layer;
@@ -502,7 +526,7 @@ var DataManager = {
 			if(foundIdx != -1){
 				datas.splice(foundIdx,1);
 			}
-			
+			PersistManager.save("map",{data:this.data});
 		}
 	},
 	layerExist : function(layer){
@@ -624,6 +648,7 @@ var AttrEditor = {
 var MetaManager = {
 	data : [],//data format: [{point:[x,y],attr:{cross:true,jump:true,..,..}},..,..]
 	init : function(){
+		this.data = PersistManager.get("mapmeta");
 		this.regEvent();
 	},
 	regEvent : function(){
@@ -648,14 +673,13 @@ var MetaManager = {
 		});
 	},
 	save : function(point,attr){
-		//TODO
-		console.log(point+attr.cross+attr.jump);
 		var d = this.get(point);
 		if(d){
 			d.attr = attr;//update
 		}else{
 			this.data.push({point:point,attr:attr});
 		}
+		PersistManager.save("mapmeta",{data:this.data});
 	},
 	get  : function(point){
 		for(var i = 0;i<this.data.length;i++){
@@ -666,5 +690,28 @@ var MetaManager = {
 			}
 		}
 		return null;
+	},
+}
+
+var PersistManager = {
+	store : null,
+	init : function(){
+		this.store = localStorage;
+	},
+	save : function(ns,obj){
+		this.store[ns] = JSON.stringify(obj);
+	},
+	clear : function(){
+		this.store.clear();
+	},
+	get : function(ns){
+		var d = this.store[ns];
+		if(d){
+			var o = JSON.parse(d);
+			if(o.data){
+				return o.data;
+			}
+		}
+		return [];
 	},
 }

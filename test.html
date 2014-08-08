@@ -9,9 +9,12 @@
 	
 	<script>
 		function start(){
+			PersistManager.init();
+			DataManager.init();
 			SrcMapManager.init();
 			ToolManager.init();
 			TargetMapManager.init();
+			
 		}
 	</script>
 	<body onload="start()">
