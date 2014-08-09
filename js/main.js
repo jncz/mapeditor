@@ -216,7 +216,9 @@ var TargetMapManager = {
 			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
 			var srcMapPoint = [];
 			//FIXME
-			
+			if(!SrcMapManager.backSPoint || !SrcMapManager.backEPoint){
+				return;
+			}
 			var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
 			var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
 			var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
@@ -257,9 +259,11 @@ var TargetMapManager = {
 var ToolManager = {
 	showAllBtn : null,
 	cleanBtn : null,
+	mapSrcBtn : null,
 	init : function(){
 		this.showAllBtn = $("showAllLayer");
 		this.cleanBtn = $("cleanMap");
+		this.mapSrcBtn = $("setMapSrc");
 		this.regEvent();
 		
 		ContinueBtnManager.init();
@@ -286,6 +290,10 @@ var ToolManager = {
 				PersistManager.clear("layer");
 				window.location.reload();
 			}
+		});
+		this.mapSrcBtn.addEventListener("click",function(){
+			imgPath = $("mapsrc").value;
+			SrcMapManager.init();
 		});
 		
 	}
@@ -438,8 +446,9 @@ var NewLayer = {
 		this.self = $("addNewLayer");
 		this.regEvent();
 		var idx = PersistManager.get("layer");
-		this.index = (idx==[])?0:idx;
-		this.recreateLayer();
+		this.index = (idx.length == 0)?0:idx;
+		this.add();//初始化默认图层
+		this.recreateLayer();//创建其他图层
 	},
 	regEvent : function(){
 		var that = this;
@@ -458,6 +467,7 @@ var NewLayer = {
 		ele.type="radio";
 		ele.name="layers";
 		ele.value = len;
+		ele.checked = (len == 0);
 		var tnode = document.createTextNode("层"+(len+1));
 		var parent = document.querySelector(".tools > fieldset");
 		parent.insertBefore(ele,$("showAllLayer"));
@@ -470,7 +480,7 @@ var NewLayer = {
 		PersistManager.save("layer",{data:idx});
 	},
 	recreateLayer : function(){
-		for(var i=1;i<this.index;i++){
+		for(var i=1;i<=this.index;i++){
 			this.createLayer();
 		}
 	},
@@ -480,12 +490,34 @@ var DataManager = {
 	data : [],
 	init : function(){
 		this.data = PersistManager.get("map");
+		
+		var idx = PersistManager.get("layer");
+		if(idx.length==0){
+			return;
+		}else{
+			var index = idx;
+			var indexes = [];
+			for(var i = 0;i<index;i++){
+				indexes.push(i);
+			}
+			indexes.sort();
+			this.layerIndex = indexes;
+		}
 	},
 	addLayer : function(layer){
 		layer = 1*layer;//convert to number
 		if(!this.layerExist(layer)){
 			this.layerIndex.push(layer);
-			this.data.push([]);
+			if(this.data.length>layer){
+				var d = this.data[layer];
+				if(!d){
+					this.data.push([]);
+				}
+			}else{
+				this.data.push([]);
+			}
+			
+			PersistManager.save("layer",{data:layer});
 		}
 	},
 	getByLayer : function(layer){
@@ -610,6 +642,7 @@ var MapExporter = {
 	init : function(){
 		this.self = $("exportMap");
 		this.regEvent();
+		DataConsole.init();
 	},
 	regEvent : function(){
 		var that = this;
@@ -619,6 +652,60 @@ var MapExporter = {
 	},
 	exportMap : function(){
 		console.log(DataManager.data);
+		var layers = [];
+		var ds = DataManager.data;
+		for(var i=0;i<ds.length;i++){//layer
+			var points = ds[i];
+			points.forEach(function(d,i,a){
+				var meta = MetaManager.get(d.imgPoint);
+				if(meta && meta.attr){
+					d.attr = meta.attr;
+				}
+			});
+			var layer = {
+						layerIdx:DataManager.layerIndex[i],
+						points:points,	
+					};
+			layers.push(layer);
+		}
+		
+		var jsonobj = {
+						width:canvas2.width,
+						height:canvas2.height,
+						unit:unit,
+						srcMap:imgPath,
+						layers:layers,
+						};
+		DataConsole.show(JSON.stringify(jsonobj));//TODO
+	},
+}
+
+var DataConsole = {
+	self : null,
+	dataEle : null,
+	closeBtn : null,
+	init : function(){
+		this.self = $("dataconsole");
+		this.dataEle = $("exporteddata");
+		this.closeBtn = $("consoleCloseBtn");
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		this.closeBtn.addEventListener("click",function(){
+			that.hide();
+		});
+		
+	},
+	show : function(data){
+		this.dataEle.innerHTML = data;
+		this.self.className = "showDataConsole";
+		var xy = getElementPositionBaseViewPort(canvas2);
+		this.self.style.top = xy[1];
+		this.self.style.left = xy[0];
+	},
+	hide : function(){
+		this.self.className = "hiddenDataConsole";
 	},
 }
 

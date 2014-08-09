@@ -23,6 +23,7 @@
 				<div class="options">地图大小,
 				x:<input type="number" id="mapSizeX" value="1024" min="100"> y:<input type="number" id="mapSizeY" value="768" min="100">
 				<button name="mapSizer" id="mapSizer">确定</button>
+				<div><input type="text" id="mapsrc" /><button id="setMapSrc">确定</button></div>
 				<div id="selectedElement"></div>
 				<div>可穿越：<input type="checkbox" name="cross" id="cross">可跳跃：<input type="checkbox" name="jump" id="jump">
 					<button id="saveMeta" disabled>存</button>
@@ -38,8 +39,6 @@
 				<button id="deleteClip" value="delete">进入删除模式</button>
 				<fieldset>
 					<legend>图层</legend>
-					<input type="radio" name="layers" value="0" checked>背景</input>
-					<input type="radio" name="layers" value="1">建筑</input>
 					<input type="checkbox" id="showAllLayer">全部</input>
 					<input type="button" id="addNewLayer">增加</input>
 					<input type="button" id="cleanMap">清除</input>
@@ -50,6 +49,9 @@
 			</div>
 		</div>
 		<canvas id="hiddenCanvas" width="1024" height="768" style="display:none"></canvas>
-		
+		<div id="dataconsole" class="hiddenDataConsole">
+			<button id="consoleCloseBtn">关闭</button>
+			<div id="exporteddata" contenteditable="true"></div>
+		</div>
 	</body>
 </html>

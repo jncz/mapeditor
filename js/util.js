@@ -59,10 +59,13 @@ function $(id){
 }
 
 function convertImageDataToCanvas(imgData,canv,ctx){
-	canv.width = imgData.width;
-	canv.height = imgData.height;
+	if(imgData){
+		canv.width = imgData.width;
+		canv.height = imgData.height;
 	
-	ctx.putImageData(imgData,0,0);
+		ctx.putImageData(imgData,0,0);
+	}
+	
 }
 
 function regEvent(eles,eventType,listener){
