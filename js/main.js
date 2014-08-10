@@ -180,22 +180,27 @@ var TargetMapManager = {
 		removeEvent([canvas2,MaskLayer2.self],"click",nonContinuesPaintHandler);
 	},
 	disableContinuesMode : function(){
-		removeEvent([canvas2],"dblclick",this.paint);
+		removeEvent([canvas2,MaskLayer2.self],"dblclick",this.paint);
 		removeEvent([canvas2],"mousemove",continuesPaintHandler);
 		
 		regEvent([canvas2],"mousemove",showTargetRect);
-		regEvent([MaskLayer2.self],"click",nonContinuesPaintHandler);
+		regEvent([canvas2,MaskLayer2.self],"click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
 	},
 	enableDeleteMode : function(){
-		canvas2.removeEventListener("click",nonContinuesPaintHandler);
-		canvas2.addEventListener("click",this.clean);
+		removeEvent([canvas2],"mousemove",showTargetRect);
+		removeEvent([canvas2],"click",nonContinuesPaintHandler);
+		
+		regEvent([canvas2],"click",this.clean);
 		DeleteBtnManager.enterDeleteMode();
 	},
 	disableDeleteMode : function(){
-		canvas2.removeEventListener("click",this.clean);
+		removeEvent([canvas2],"click",this.clean);
+		
+		//regEvent([canvas2],"mousemove",showTargetRect);
+		//regEvent([canvas2],"click",nonContinuesPaintHandler);
+		
 		DeleteBtnManager.leaveDeleteMode();
-		canvas2.addEventListener("click",nonContinuesPaintHandler);
 	},
 	showCurrentLayer : function(){
 		this.reset();
