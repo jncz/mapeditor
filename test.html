@@ -4,6 +4,7 @@
 		<title>Map Editor</title>
 		<link rel="stylesheet" href="css/style.css">
 		<script type="text/javascript" src="js/util.js"></script>
+		<script type="text/javascript" src="js/compress.js"></script>
 		<script type="text/javascript" src="js/main.js"></script>
 	</head>
 	
@@ -39,19 +40,20 @@
 				<button id="deleteClip" value="delete">进入删除模式</button>
 				<fieldset>
 					<legend>图层</legend>
-					<input type="checkbox" id="showAllLayer">全部</input>
-					<input type="button" id="addNewLayer">增加</input>
-					<input type="button" id="cleanMap">清除</input>
+					<input type="checkbox" id="showAllLayer">ALL</input>
+					<button type="button" id="addNewLayer">增加</button>
+					<button type="button" id="cleanMap">清除</button>
 				</fieldset>
 			</div>
 			<div class="rightPanel">
 				<canvas id="targetCanvas" width="1024" height="768"></canvas>
+				<div id="maskLayer2" width="0" height="0"></div>
 			</div>
 		</div>
 		<canvas id="hiddenCanvas" width="1024" height="768" style="display:none"></canvas>
 		<div id="dataconsole" class="hiddenDataConsole">
 			<button id="consoleCloseBtn">关闭</button>
-			<div id="exporteddata" contenteditable="true"></div>
+			<div id="exporteddata" ></div>
 		</div>
 	</body>
 </html>

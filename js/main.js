@@ -18,6 +18,8 @@ var showAllLayer = false;
 
 var paintRect = false;
 
+var targetCanvasRectPoint;
+
 var SrcMapManager = {
 	self : null,
 	context : null,
@@ -140,10 +142,12 @@ var TargetMapManager = {
 		this.targetMapSizeY = canvas2.height;
 		canvas3 = document.getElementById("hiddenCanvas");
 		context3 = hiddenCanvas.getContext("2d");
+		MaskLayer2.init();
 		
 		this.regEvent();
 		
 		LayerManager.init();
+		
 	},
 	reset : function(){
 		context2.clearRect(0,0,this.targetMapSizeX,this.targetMapSizeY);
@@ -154,13 +158,11 @@ var TargetMapManager = {
 	},
 	clean : function(e){
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
-		//context2.clearRect(rectPoint[0]*unit,rectPoint[1]*unit,unit,unit);
 		DataManager.record({layer:currentLayer,point:rectPoint,opt:OPT_REMOVE});
 		TargetMapManager.showCurrentLayer();
 	},
 	paint : function(e){
 		var rectPoint = nearestRectangleByLocation(e,canvas2);
-		//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
 		convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
 		context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
 		paintStarted = !paintStarted;
@@ -171,74 +173,19 @@ var TargetMapManager = {
 		canvas2.height = y;
 	},
 	enableContinuesMode : function(){
-		canvas2.addEventListener("dblclick",this.paint);
-		continuesPaintHandler = function(e){
-					if(!paintStarted){
-						return;
-					}
-					var rectPoint = nearestRectangleByLocation(e,canvas2);
-					//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-					convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
-					context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
-					
-					var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
-					var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
-					var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
-					var minY = Math.min(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
-					
-					for(var x = minY;x<=maxY;x++){
-						var temp = rectPoint[0];
-						for(var i = minX;i<=maxX;i++){
-							srcMapPoint = [i+MainFrameManager.srcMapCurrentX,x+MainFrameManager.srcMapCurrentY];
-							
-							DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:srcMapPoint,opt:OPT_ADD});
-							rectPoint[0] = rectPoint[0]+1;
-						}
-						rectPoint[1] = rectPoint[1]+1;
-						rectPoint[0] = temp;//X到头之后，重新回到前面
-					}
-				};
-		canvas2.addEventListener("mousemove",continuesPaintHandler);
-
-		canvas2.removeEventListener("click",nonContinuesPaintHandler);
+		regEvent([canvas2,MaskLayer2.self],"dblclick",this.paint);
+		regEvent([canvas2],"mousemove",continuesPaintHandler);
+	
+		removeEvent([canvas2],"mousemove",showTargetRect);
+		removeEvent([canvas2,MaskLayer2.self],"click",nonContinuesPaintHandler);
 	},
 	disableContinuesMode : function(){
-		canvas2.removeEventListener("dblclick",this.paint);
+		removeEvent([canvas2],"dblclick",this.paint);
+		removeEvent([canvas2],"mousemove",continuesPaintHandler);
 		
-		if(continuesPaintHandler){
-			canvas2.removeEventListener("mousemove",continuesPaintHandler);
-		}
-		
-		nonContinuesPaintHandler = function(e){
-			var rectPoint = nearestRectangleByLocation(e,canvas2);
-			//context2.putImageData(SrcMapManager.getSelectedImageData(),rectPoint[0]*unit,rectPoint[1]*unit);
-			convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
-			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
-			var srcMapPoint = [];
-			//FIXME
-			if(!SrcMapManager.backSPoint || !SrcMapManager.backEPoint){
-				return;
-			}
-			var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
-			var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
-			var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
-			var minY = Math.min(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
-			
-			for(var x = minY;x<=maxY;x++){
-				var temp = rectPoint[0];
-				for(var i = minX;i<=maxX;i++){
-					srcMapPoint = [i+MainFrameManager.srcMapCurrentX,x+MainFrameManager.srcMapCurrentY];
-					
-					DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:srcMapPoint,opt:OPT_ADD});
-					rectPoint[0] = rectPoint[0]+1;
-				}
-				rectPoint[1] = rectPoint[1]+1;
-				rectPoint[0] = temp;//X到头之后，重新回到前面
-			}
-		};
-		canvas2.addEventListener("click",nonContinuesPaintHandler);
+		regEvent([canvas2],"mousemove",showTargetRect);
+		regEvent([MaskLayer2.self],"click",nonContinuesPaintHandler);
 		this.disableDeleteMode();
-		
 	},
 	enableDeleteMode : function(){
 		canvas2.removeEventListener("click",nonContinuesPaintHandler);
@@ -468,7 +415,7 @@ var NewLayer = {
 		ele.name="layers";
 		ele.value = len;
 		ele.checked = (len == 0);
-		var tnode = document.createTextNode("层"+(len+1));
+		var tnode = document.createTextNode(len+1);
 		var parent = document.querySelector(".tools > fieldset");
 		parent.insertBefore(ele,$("showAllLayer"));
 		parent.insertBefore(tnode,$("showAllLayer"));
@@ -635,6 +582,7 @@ var LayerManager = {
 				idx:0,
 				point:[x,y],
 			},..,..],
+	meta:[{point:[x,y],attr:{cross:true,jump:false,..}},..,..]
 }
 */
 var MapExporter = {
@@ -656,25 +604,20 @@ var MapExporter = {
 		var ds = DataManager.data;
 		for(var i=0;i<ds.length;i++){//layer
 			var points = ds[i];
-			points.forEach(function(d,i,a){
-				var meta = MetaManager.get(d.imgPoint);
-				if(meta && meta.attr){
-					d.attr = meta.attr;
-				}
-			});
 			var layer = {
 						layerIdx:DataManager.layerIndex[i],
 						points:points,	
 					};
 			layers.push(layer);
 		}
-		
+		var meta = MetaManager.data;
 		var jsonobj = {
 						width:canvas2.width,
 						height:canvas2.height,
 						unit:unit,
 						srcMap:imgPath,
 						layers:layers,
+						meta:meta
 						};
 		DataConsole.show(JSON.stringify(jsonobj));//TODO
 	},
@@ -713,6 +656,27 @@ var MaskLayer = {
 	self : null,
 	init : function(){
 		this.self = $("maskLayer");
+		this.regEvent();
+	},
+	regEvent : function(){
+		
+	},
+	show : function(t,l,w,h){
+		this.self.className = "showMaskLayer";
+		this.self.style.width = w;
+		this.self.style.height = h;
+		this.self.style.top = t;
+		this.self.style.left = l;
+	},
+	hidden : function(){
+		this.self.className = "hiddenMaskLayer";
+	},
+}
+
+var MaskLayer2 = {
+	self : null,
+	init : function(){
+		this.self = $("maskLayer2");
 		this.regEvent();
 	},
 	regEvent : function(){
@@ -812,4 +776,66 @@ var PersistManager = {
 		}
 		return [];
 	},
+}
+
+var continuesPaintHandler = function(e){
+					if(!paintStarted){
+						return;
+					}
+					//
+					var rectPoint = nearestRectangleByLocation(e,canvas2);
+					var pos = getElementPosition(canvas2);
+					var x = pos[0]+rectPoint[0]*unit;
+					var y = pos[1]+rectPoint[1]*unit;
+					var w = unit*(Math.abs(SrcMapManager.rangeEnd[0]-SrcMapManager.rangeStart[0])+1);
+					var h = unit*(Math.abs(SrcMapManager.rangeEnd[1]-SrcMapManager.rangeStart[1])+1);
+					
+					MaskLayer2.show(y,x,w,h);
+					//END
+					convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
+					context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
+					
+					recordMultipleClip(rectPoint);
+				};
+				
+var nonContinuesPaintHandler = function(e){
+			var rectPoint = targetCanvasRectPoint;
+			convertImageDataToCanvas(SrcMapManager.getSelectedImageData(),canvas3,context3);
+			context2.drawImage(canvas3,rectPoint[0]*unit,rectPoint[1]*unit);
+			var srcMapPoint = [];
+			//FIXME
+			if(!SrcMapManager.backSPoint || !SrcMapManager.backEPoint){
+				return;
+			}
+			
+			recordMultipleClip(rectPoint);
+		};
+	
+var showTargetRect = function(e){
+			var rectPoint = nearestRectangleByLocation(e,canvas2);
+			var pos = getElementPosition(canvas2);
+			var x = pos[0]+rectPoint[0]*unit;
+			var y = pos[1]+rectPoint[1]*unit;
+			var w = unit*(Math.abs(SrcMapManager.rangeEnd[0]-SrcMapManager.rangeStart[0])+1);
+			var h = unit*(Math.abs(SrcMapManager.rangeEnd[1]-SrcMapManager.rangeStart[1])+1);
+			targetCanvasRectPoint = rectPoint;
+			MaskLayer2.show(y,x,w,h);
+		};
+function recordMultipleClip(rectPoint){
+	var maxX = Math.max(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+	var minX = Math.min(SrcMapManager.backSPoint[0],SrcMapManager.backEPoint[0]);
+	var maxY = Math.max(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+	var minY = Math.min(SrcMapManager.backSPoint[1],SrcMapManager.backEPoint[1]);
+	
+	for(var x = minY;x<=maxY;x++){
+		var temp = rectPoint[0];
+		for(var i = minX;i<=maxX;i++){
+			srcMapPoint = [i+MainFrameManager.srcMapCurrentX,x+MainFrameManager.srcMapCurrentY];
+			
+			DataManager.record({layer:currentLayer,point:rectPoint,srcMapPoint:srcMapPoint,opt:OPT_ADD});
+			rectPoint[0] = rectPoint[0]+1;
+		}
+		rectPoint[1] = rectPoint[1]+1;
+		rectPoint[0] = temp;//X到头之后，重新回到前面
+	}
 }

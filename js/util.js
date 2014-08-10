@@ -70,10 +70,18 @@ function convertImageDataToCanvas(imgData,canv,ctx){
 
 function regEvent(eles,eventType,listener){
 	eles.forEach(function(d,i,a){
-		d.addEventListener(eventType,listener);
+		if(listener && d){
+			d.addEventListener(eventType,listener);
+		}
 	});
 }
-
+function removeEvent(eles,eventType,listener){
+	eles.forEach(function(d,i,a){
+		if(listener && d){
+			d.removeEventListener(eventType,listener);
+		}
+	});
+}
 function showSelectedRange(spoint,epoint,dx,dy){//在div id=selectedElement的元素中显示选择的区域
 	var ele = $("selectedElement");
 	
