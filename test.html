@@ -18,8 +18,8 @@
 			
 		}
 	</script>
-	<body onload="start()" onselectstart="return false">
-		<div class="container">
+	<body onload="start()" >
+		<div class="container" onselectstart="return false">
 			<div class="leftPanel">
 				<div class="options">地图大小,
 				x:<input type="number" id="mapSizeX" value="1024" min="100"> y:<input type="number" id="mapSizeY" value="768" min="100">
@@ -50,9 +50,9 @@
 				<div id="maskLayer2" width="0" height="0"></div>
 			</div>
 		</div>
-		<canvas id="hiddenCanvas" width="1024" height="768" style="display:none"></canvas>
+		<canvas id="hiddenCanvas" width="1024" height="768" style="display:none" onselectstart="return false"></canvas>
 		<div id="dataconsole" class="hiddenDataConsole">
-			<button id="consoleCloseBtn">关闭</button>
+			<button id="consoleCloseBtn" onselectstart="return false">关闭</button>
 			<div id="exporteddata" ></div>
 		</div>
 	</body>
