@@ -122,3 +122,18 @@ function showSelectedClipAttr(point,dx,dy){
 		jumpEle.checked = false;
 	}
 }
+
+function prettyPrint(datas){
+	var idx = 0;
+	var s = "";
+	for(var i = 0;i<datas.length;i=i+4){
+		var r = datas[i];
+		var g = datas[i+1];
+		var b = datas[i+2];
+		var a = datas[i+3];
+		
+		if(i%unit == 0 && i <6*unit){
+			console.log(Math.floor(i/unit)+" : "+[r,g,b,a]);
+		}
+	}
+}

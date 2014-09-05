@@ -26,19 +26,6 @@
 				<button name="mapSizer" id="mapSizer">确定</button>
 				<div><input type="text" id="mapsrc" /><button id="setMapSrc">确定</button></div>
 				<div id="selectedElement"></div>
-				<div>
-					<ul>
-						<li>
-							可穿越：<input type="checkbox" name="cross" id="cross">
-							可跳跃：<input type="checkbox" name="jump" id="jump">
-						</li>
-						<li>
-							走后面：<input type="checkbox" name="walkBehind" id="walkBehind">
-							走前面：<input type="checkbox" name="walkFront" id="walkFront">
-						</li>
-						<li><button id="saveMeta" disabled>存</button></li>
-					</ul>
-				</div>
 				</div>
 
 				<div><button name="exportMap" id="exportMap">导出地图</button></div>
@@ -48,6 +35,7 @@
 			<div class="tools">
 				<button id="continueModeBtn" value="continues">进入连续模式</button>
 				<button id="deleteClip" value="delete">进入删除模式</button>
+				<button id="editProp" value="edit">设置  属性</button>
 				<fieldset>
 					<legend>图层</legend>
 					<input type="checkbox" id="showAllLayer">ALL</input>
@@ -64,6 +52,30 @@
 		<div id="dataconsole" class="hiddenDataConsole">
 			<button id="consoleCloseBtn" onselectstart="return false">关闭</button>
 			<div id="exporteddata" ></div>
+		</div>
+		<div id="propEditor" class="hiddenPropEditor">
+			<div>
+				<ul>
+					<li><button id="saveMeta" disabled>存</button></li>
+					<li>
+						可穿越：<input type="checkbox" name="cross" id="cross">
+						可跳跃：<input type="checkbox" name="jump" id="jump">
+					</li>
+					<li>
+						走后面：<input type="checkbox" name="walkBehind" id="walkBehind">
+						走前面：<input type="checkbox" name="walkFront" id="walkFront">
+					</li>
+					<li id="groupSection">
+						是否整体：<input type="checkbox" name="groupObject" id="groupObject">
+						长：<input type="text" name="groupObjectL" id="groupObjectL">
+						宽：<input type="text" name="groupObjectW" id="groupObjectW">
+						高：<input type="text" name="groupObjectH" id="groupObjectH">
+					</li>
+				</ul>
+			</div>
+			<div>
+				<button id="closePropEditor">关闭</button>
+			</div>
 		</div>
 	</body>
 </html>

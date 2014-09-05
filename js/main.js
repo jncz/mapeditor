@@ -225,6 +225,7 @@ var ToolManager = {
 		MapExporter.init();
 		NewLayer.init();
 		MetaManager.init();
+		PropEditor.init();
 	},
 	regEvent : function(){
 		this.showAllBtn.addEventListener("click",function(){
@@ -603,8 +604,105 @@ var MapExporter = {
 			that.exportMap();
 		});
 	},
+	computeImgBound : function(metas){
+		//TODO
+		/**
+		@param idx 表示列的号码
+		返回的数据格式为：[[255,200,240,255],[...],...]
+		*/
+		var getLineDataV = function(data,idx){
+			//return [[255,200,240,255],[...],...];
+			var d = [];
+			for(var i = 0;i<unit;i++){
+				d.push([data[i*unit*4+idx*4],data[i*unit*4+1+idx*4],data[i*unit*4+2+idx*4],data[i*unit*4+3+idx*4]]);
+			}
+			return d;
+		};
+		var getLineDataH = function(data,idx){
+			//return [[255,200,240,255],[...],...];
+			var d = [];
+			for(var i = 0;i<unit;i++){
+				d.push([data[i*4+idx*unit*4],data[i*4+1+idx*unit*4],data[i*4+2+idx*unit*4],data[i*4+3+idx*unit*4]]);
+			}
+			return d;
+		};
+		/**
+		@ldata 每行的数据
+		返回该行数据中有效的像素，所谓有效像素是指透明度不为0的像素
+		*/
+		var findValidPixel = function(ldata){
+			for(var i=0;i<ldata.length;i++){
+				var d = ldata[i];
+				var alpha = d[3];
+				if(alpha > 5){//alpha 小于5就认为完全透明
+					return d;
+				}
+			}
+			return null;
+		}
+		for(var i=0;i<metas.length;i++){
+			var p = metas[i].point;
+			var ctx = SrcMapManager.context;
+			var imgData = ctx.getImageData(p[0]*unit,p[1]*unit,unit,unit);
+			//var imgData = ctx.getImageData(2*unit,0*unit,unit,unit);
+			var data = imgData.data;
+			//prettyPrint(data);
+			
+			var l = r = u = d = unit;
+			for(var j = 0;j<unit;j++){
+				var ldata = getLineDataV(data,j);//获取左起第j列的数据
+				var pixel = findValidPixel(ldata);
+				if(!pixel){
+					//如果找不到有效像素继续向右推进，取下一列的数据检查是否有有效像素
+					continue;
+				}else{
+					l = j;//表示在第几个像素找到的
+					//console.log(" - "+l);
+					break;
+				}
+			}
+			
+			for(var j = unit-1;j>=0;j--){
+				var ldata = getLineDataV(data,j);//获取右起第j列的数据
+				var pixel = findValidPixel(ldata);
+				if(!pixel){
+					//如果找不到有效像素继续向左推进，取下一列的数据检查是否有有效像素
+					continue;
+				}else{
+					r = j;//表示在第几个像素找到的
+					break;
+				}
+			}
+			for(var j = 0;j<unit;j++){
+				var ldata = getLineDataH(data,j);//获取上往下起第j列的数据
+				var pixel = findValidPixel(ldata);
+				if(!pixel){
+					//如果找不到有效像素继续向下推进，取下一行的数据检查是否有有效像素
+					continue;
+				}else{
+					u = j;//表示在第几个像素找到的
+					break;
+				}
+			}
+			for(var j = unit-1;j>=0;j--){
+				var ldata = getLineDataH(data,j);//获取下边起第j列的数据
+				var pixel = findValidPixel(ldata);
+				if(!pixel){
+					//如果找不到有效像素继续向上推进，取下一行的数据检查是否有有效像素
+					continue;
+				}else{
+					d = j;//表示在第几个像素找到的
+					break;
+				}
+			}
+			
+			metas[i].bound = [l,u,r,d];
+			//metas[i].bound = [l,0,0,0];
+		}
+		
+		return metas;
+	},
 	exportMap : function(){
-		console.log(DataManager.data);
 		var layers = [];
 		var ds = DataManager.data;
 		for(var i=0;i<ds.length;i++){//layer
@@ -616,6 +714,7 @@ var MapExporter = {
 			layers.push(layer);
 		}
 		var meta = MetaManager.data;
+		meta = this.computeImgBound(meta);
 		var jsonobj = {
 						width:canvas2.width,
 						height:canvas2.height,
@@ -699,16 +798,35 @@ var MaskLayer2 = {
 	},
 }
 
-var AttrEditor = {
-	editor : null,
+var PropEditor = {
+	btn : null,
+	cbtn : null,
+	self : null,
 	cross  : null,
 	init : function(){
-		this.editor = $("attrEditor");
-		this.cross = $("cross");
+		this.btn = $("editProp");
+		this.cbtn = $("closePropEditor");
+		this.self = $("propEditor");
 		
 		this.regEvent();
 	},
 	regEvent : function(){
+		var that = this;
+		regEvent([this.btn],"click",function(){
+			that.show();
+		});
+		regEvent([this.cbtn],"click",function(){
+			that.hide();
+		});
+	},
+	show : function(){
+		var xy = getElementPositionBaseViewPort(canvas2);
+		this.self.className = "showPropEditor";
+		this.self.style.top = xy[1];
+		this.self.style.left = xy[0];
+	},
+	hide:function(){
+		this.self.className = "hiddenPropEditor";
 	},
 }
 

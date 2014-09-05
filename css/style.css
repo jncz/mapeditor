@@ -66,6 +66,21 @@ html,body{
 	width:0;
 	height:0;
 }
+.showPropEditor{
+	position:absolute;
+	display:block;
+	border:1px solid blue;
+	width:600px;
+	height:600px;
+	background-color:white;
+}
+.hiddenPropEditor{
+	position:absolute;
+	display:none;
+	border:1px solid blue;
+	width:0;
+	height:0;
+}
 #exporteddata{
 	position:absolute;
 	display:block;
@@ -79,4 +94,7 @@ html,body{
 
 ul{
 	margin:0px;
+}
+#groupSection > input{
+	width:40;
 }
