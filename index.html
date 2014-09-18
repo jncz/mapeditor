@@ -25,10 +25,19 @@
 				x:<input type="number" id="mapSizeX" value="1024" min="100"> y:<input type="number" id="mapSizeY" value="768" min="100">
 				<button name="mapSizer" id="mapSizer">确定</button>
 				<div><input type="text" id="mapsrc" /><button id="setMapSrc">确定</button></div>
+				<div>目标设备块单位：<input type="number" id="mapUnit" value="32"><button id="setMapUnit">确定</button></div>
 				<div id="selectedElement"></div>
 				</div>
-
-				<div><button name="exportMap" id="exportMap">导出地图</button></div>
+				
+				<div>
+					<button name="shareMap" id="shareMap">共享地图</button>
+				</div>
+				<div>
+					<button name="exportMap" id="exportMap">导出地图</button>
+					<button name="saveMap" id="saveMap">保存</button>
+					<button name="selectMap" id="selectMap">加载</button>
+					<button name="selectJSONMap" id="selectJSONMap">加载JSON地图</button>
+				</div>
 				<canvas id="srcCanvas" width="300" height="600"></canvas>
 				<div id="maskLayer" width="0" height="0"></div>
 			</div>
@@ -77,5 +86,19 @@
 				<button id="closePropEditor">关闭</button>
 			</div>
 		</div>
+		<dialog id="mapSaverDialog" class="hide">
+			文件名：<input id="mapName" /> <button id="mapSaverBtn">保存</button>
+			<div id="mapSaveFileNameError" class="error"></div>
+		</dialog>
+		<dialog id="loadMapDialog" class="hide">
+			<div>已有地图：</div>
+			<div id="maplist"></div>
+		</dialog>
+		<dialog id="loadJSONMapDialog" class="hide">
+			<div>选择地图：</div>
+			<div>
+				<input type="file" id="jsonmapfile">
+			</div>
+		</dialog>
 	</body>
 </html>

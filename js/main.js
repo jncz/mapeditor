@@ -5,6 +5,7 @@ var imageOffsetX = 0;
 var imageOffsetY = 0;
 
 var unit = 32;
+var targetDeviceUnit = 32;
 var imageViewWidth = unit*9;
 var imageViewHeight = unit*18;
 
@@ -20,6 +21,13 @@ var paintRect = false;
 
 var targetCanvasRectPoint;
 
+Array.prototype.upush = function(ele){
+	var idx = this.indexOf(ele);
+	if(idx != -1){
+		this.splice(idx,1);
+	}
+	this.push(ele);
+}
 var SrcMapManager = {
 	self : null,
 	context : null,
@@ -148,6 +156,8 @@ var TargetMapManager = {
 		
 		LayerManager.init();
 		
+		var mapSize = PersistManager.get("mapSize");
+		this.mapResize(mapSize.x,mapSize.y);
 	},
 	reset : function(){
 		context2.clearRect(0,0,this.targetMapSizeX,this.targetMapSizeY);
@@ -212,10 +222,12 @@ var ToolManager = {
 	showAllBtn : null,
 	cleanBtn : null,
 	mapSrcBtn : null,
+	mapUnitBtn : null,
 	init : function(){
 		this.showAllBtn = $("showAllLayer");
 		this.cleanBtn = $("cleanMap");
 		this.mapSrcBtn = $("setMapSrc");
+		this.mapUnitBtn = $("setMapUnit");
 		this.regEvent();
 		
 		ContinueBtnManager.init();
@@ -223,6 +235,7 @@ var ToolManager = {
 		MainFrameManager.init();
 		MapResizer.init();
 		MapExporter.init();
+		MapSaver.init();
 		NewLayer.init();
 		MetaManager.init();
 		PropEditor.init();
@@ -248,7 +261,9 @@ var ToolManager = {
 			imgPath = $("mapsrc").value;
 			SrcMapManager.init();
 		});
-		
+		this.mapUnitBtn.addEventListener("click",function(){
+			targetDeviceUnit = Number.parseInt($("mapUnit").value);
+		});
 	}
 }
 
@@ -347,12 +362,19 @@ var MapResizer = {
 	self : null,
 	init : function(){
 		this.self = $("mapSizer");
+		var mapSize = PersistManager.get("mapSize");
+		if(mapSize){
+			$("mapSizeX").value = mapSize.x;
+			$("mapSizeY").value = mapSize.y;
+		}
+		
 		this.regEvent();
 	},
 	regEvent : function(){
 		this.self.addEventListener("click",function(e){
 			var x = $("mapSizeX").value;
 			var y = $("mapSizeY").value;
+			PersistManager.save("mapSize",{data:{x:x,y:y}});
 			TargetMapManager.mapResize(x,y);
 		});
 	},
@@ -718,12 +740,13 @@ var MapExporter = {
 		var jsonobj = {
 						width:canvas2.width,
 						height:canvas2.height,
-						unit:unit,
+						unit:Number.isInteger(targetDeviceUnit)?targetDeviceUnit:unit,
 						srcMap:imgPath,
 						layers:layers,
 						meta:meta
 						};
 		DataConsole.show(JSON.stringify(jsonobj));//TODO
+		return jsonobj;
 	},
 }
 
@@ -901,6 +924,93 @@ var PersistManager = {
 	},
 }
 
+var MapSaver = {
+	self : null,
+	init : function(){
+		this.self = $("saveMap");
+		this.regEvent();
+	},
+	regEvent : function(){
+		var that = this;
+		this.self.addEventListener("click",function(){
+			that.showSaveMapDialog();
+		});
+		$("mapSaverBtn").addEventListener("click",function(){
+			var filename = $("mapName").value;
+			if(filename == ""){
+				$("mapSaveFileNameError").textContent = "文件名不能为非法或者空";
+				return;
+			}
+			var data = PersistManager.get("map");//获取当前地图信息
+			PersistManager.save(filename,{data:data});
+			var names = PersistManager.get("mapname");
+			names.upush(filename);
+			PersistManager.save("mapname",{data:names});
+			
+			$("mapSaverDialog").close();
+			$("mapSaverDialog").classList.toggle("hide");
+		});
+		$("selectMap").addEventListener("click",function(){
+			$("loadMapDialog").classList.toggle("hide");
+			var names = PersistManager.get("mapname");
+			names.forEach(function(d,i,a){
+				var child = document.createElement("button");
+				child.textContent = d;
+				child.setAttribute("mapname",d);
+				child.addEventListener("click",function(){
+					var map = PersistManager.get(this.getAttribute("mapname"));
+					PersistManager.save("map",{data:map});
+					PersistManager.save("layer",{data:map.length-1});
+					reload();
+				});
+				$("maplist").appendChild(child);
+			});
+			
+			$("loadMapDialog").showModal();
+		});
+		
+		$("jsonmapfile").addEventListener("change",function(e){
+			var files = e.target.files;
+			var file = files[0];
+			var reader = new FileReader();
+			console.log(file.name);
+			reader.onloadend = function(e){
+				if(e.target.readyState == FileReader.DONE){
+					var content = e.target.result;
+					console.log(content);
+					var map = JSON.parse(content);
+					var layers = map.layers;
+					var mapdata = [];
+					layers.forEach(function(d,i,a){
+						mapdata[d.layerIdx] = d.points;
+					});
+					PersistManager.save("map",{data:mapdata});
+					PersistManager.save("layer",{data:layers.length-1});
+					$("loadJSONMapDialog").close();
+					reload();
+				}
+			};
+			reader.readAsText(file);
+		},false);
+		$("selectJSONMap").addEventListener("click",function(){
+			$("loadJSONMapDialog").classList.toggle("hide");
+			$("loadJSONMapDialog").showModal();
+		});
+		
+		$("shareMap").addEventListener("click",function(){
+			var mapdata = MapExporter.exportMap();
+			PersistManager.save("sharemap",{data:mapdata});
+		});
+	},
+	showSaveMapDialog : function(){
+		$("mapSaverDialog").classList.toggle("hide");
+		$("mapName").value="";
+		$("mapSaveFileNameError").textContent = "";
+		$("mapSaverDialog").showModal();
+	},
+	
+}
+
 var continuesPaintHandler = function(e){
 					if(!paintStarted){
 						return;
@@ -961,4 +1071,8 @@ function recordMultipleClip(rectPoint){
 		rectPoint[1] = rectPoint[1]+1;
 		rectPoint[0] = temp;//X到头之后，重新回到前面
 	}
+}
+
+function reload(){
+	window.location.reload();
 }

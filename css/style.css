@@ -98,3 +98,12 @@ ul{
 #groupSection > input{
 	width:40;
 }
+#mapUnit{
+	width:40;
+}
+.hide{
+	display:none;
+}
+.error{
+	color:red;
+}
