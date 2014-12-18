@@ -623,7 +623,8 @@ var MapExporter = {
 	regEvent : function(){
 		var that = this;
 		this.self.addEventListener("click",function(){
-			that.exportMap();
+			var jsonobj = that.exportMap();
+			DataConsole.show(JSON.stringify(jsonobj));//TODO
 		});
 	},
 	computeImgBound : function(metas){
@@ -745,7 +746,7 @@ var MapExporter = {
 						layers:layers,
 						meta:meta
 						};
-		DataConsole.show(JSON.stringify(jsonobj));//TODO
+		
 		return jsonobj;
 	},
 }
@@ -977,7 +978,7 @@ var MapSaver = {
 			reader.onloadend = function(e){
 				if(e.target.readyState == FileReader.DONE){
 					var content = e.target.result;
-					console.log(content);
+					
 					var map = JSON.parse(content);
 					var layers = map.layers;
 					var mapdata = [];
